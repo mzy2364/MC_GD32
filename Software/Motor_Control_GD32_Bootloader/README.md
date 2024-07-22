@@ -1,0 +1,3 @@
+# Motor_Control_GD32_Bootloader
+
+用于GD32电机控制器的bootloader，基于YMODEM协议

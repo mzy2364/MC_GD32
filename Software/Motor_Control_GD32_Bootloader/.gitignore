@@ -1,0 +1,7 @@
+##ignore this file##
+*pmpx
+MDK-ARM/Listings
+MDK-ARM/Objects
+MDK-ARM/RTE
+MDK-ARM/*uvguix*
+MDK-ARM/JLinkLog.txt
