@@ -1,6 +1,8 @@
 # MC_GD32
 
 基于 GD32F303 的 FOC 无刷电机控制器
+淘宝地址：
+[https://item.taobao.com/item.htm?spm=a1z0k.1000777.0.0.77e537deL51T9A&id=816424031911&_u=t2dmg8j26111](https://item.taobao.com/item.htm?spm=a1z0k.1000777.0.0.77e537deL51T9A&id=816424031911&_u=t2dmg8j26111)
 <img src='PIC/MC_GD32_01.png'></img>
 基于 GD32 ARM Cortex-M4 单片机，主频高达 120MHz，自带硬件浮点运算单元，借助 GD32F303 的零等待 FLASH，FOC 算法时间短
 自带 2Kbit I2C 接口 EEPROM，可以保存电机参数等信息
