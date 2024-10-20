@@ -34,8 +34,10 @@
   */
 int main(void)
 {
-    const uint8_t eeprom_write_buffer[] = "MotorControlUnitGD32";
+    const uint8_t eeprom_write_buffer0[] = "MotorControlUnitGD32";
+    const uint8_t eeprom_write_buffer1[] = "MC_GD32 EEPROM TEST!";
     uint8_t eeprom_read_buffer[30] = {0};
+    uint8_t enter[2] = {"\r\n"};
     
     SCB->VTOR = FLASH_BASE | 0x4000;
     __enable_irq();
@@ -45,11 +47,22 @@ int main(void)
     i2c_init();
     usart_init();
     
-    eeprom_write(0,(uint8_t *)eeprom_write_buffer,sizeof(eeprom_write_buffer));
+    eeprom_write(0,(uint8_t *)eeprom_write_buffer0,sizeof(eeprom_write_buffer0));
     systick_delay(100);
-    eeprom_read(0,eeprom_read_buffer,sizeof(eeprom_write_buffer));
+    eeprom_read(0,eeprom_read_buffer,sizeof(eeprom_write_buffer0));
 
-    usart_send_data(eeprom_read_buffer,sizeof(eeprom_write_buffer));
+    usart_send_data(eeprom_read_buffer,sizeof(eeprom_write_buffer0));
+    memset(eeprom_read_buffer,0,sizeof(eeprom_read_buffer));
+    systick_delay(100);
+    usart_send_data(enter,sizeof(enter));
+    
+    eeprom_write(0,(uint8_t *)eeprom_write_buffer1,sizeof(eeprom_write_buffer1));
+    systick_delay(100);
+    eeprom_read(0,eeprom_read_buffer,sizeof(eeprom_write_buffer1));
+    
+    usart_send_data(eeprom_read_buffer,sizeof(eeprom_write_buffer1));
+    systick_delay(100);
+    usart_send_data(enter,sizeof(enter));
     
 	while(1)
 	{

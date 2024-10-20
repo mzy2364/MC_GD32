@@ -10,11 +10,8 @@
 *******************************************************************************/
 #include "task.h"
 #include "systick.h"
-#include "motor_hardware.h"
 #include "led.h"
-#include "foc.h"
-#include "pmsm.h"
-#include "userparms.h"
+#include "motor_app.h"
 
 /*******************************************************************************
 * Defines
@@ -73,6 +70,8 @@ static void sch_idle(void);
 *  Global Functions Body
 *******************************************************************************/
 
+
+
 /**
   * @brief TASK初始化
   * @param void
@@ -81,7 +80,7 @@ static void sch_idle(void);
   */
 void task_init(void)
 {
-
+    motor_app_init();
 }
 
 /**
@@ -114,11 +113,7 @@ static void sch_task5ms(void)
   */
 static void sch_task10ms(void)
 {
-    if((pmsm_mc_param.openloop == 0) && (pmsm_mc_param.run_motor == 1))
-    {
-        smc1.filt_omega_coef = LOOPTIME_SEC * smc1.omega_fltred;  //T*2π*fc  fc = erps
-        smc1.kslf = smc1.kslf_final = smc1.filt_omega_coef;
-    }
+    motor_app_task10ms();
 }
 
 /**
@@ -129,7 +124,7 @@ static void sch_task10ms(void)
   */
 static void sch_task100ms(void)
 {
-
+    motor_app_task100ms();
 }
 
 /**
@@ -141,6 +136,7 @@ static void sch_task100ms(void)
 static void sch_task500ms(void)
 {
     led_toggle(LED1);
+    motor_app_task500ms();
 }
 
 /**
@@ -151,7 +147,7 @@ static void sch_task500ms(void)
   */
 static void sch_task1s(void)
 {
-
+    motor_app_task1s();
 }
 
 /**
@@ -162,7 +158,7 @@ static void sch_task1s(void)
   */
 static void sch_idle(void)
 {
-
+    motor_app_idle();
 }
 
 /**

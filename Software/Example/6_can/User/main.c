@@ -40,7 +40,7 @@ int main(void)
     can_bus_init();
     
     /* initialize transmit message */
-    transmit_message.tx_sfid = 0x201;
+    transmit_message.tx_sfid = 0x200;
     transmit_message.tx_efid = 0x00;
     transmit_message.tx_ft = CAN_FT_DATA;
     transmit_message.tx_ff = CAN_FF_STANDARD;

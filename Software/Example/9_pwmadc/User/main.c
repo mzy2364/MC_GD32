@@ -47,6 +47,7 @@ int main(void)
     gpio_bit_write(USER_IO1_PORT,USER_IO1_PIN,RESET);
     
     motor_hardware_init();
+    motor_pwm_enable();
     
     motor_pwm_set_duty(MOTOR_PWM_PERIOD/8,MOTOR_PWM_PERIOD/4,MOTOR_PWM_PERIOD/2);
     

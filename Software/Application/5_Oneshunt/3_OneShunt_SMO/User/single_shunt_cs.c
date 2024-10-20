@@ -33,8 +33,8 @@ int32_t duty_u = 0;
 int32_t duty_v = 0;
 int32_t duty_w = 0;
 uint32_t _pwm_period = MOTOR_PWM_PERIOD;
-uint16_t t_sample_delay_cycle = 0;
-uint16_t t_min_dur_cycle = 0;
+uint16_t t_sample_delay_cycle = MOTOR_PWM_PERIOD / 20;
+uint16_t t_min_dur_cycle = MOTOR_PWM_PERIOD / 10;
 
 int16_t signle_shunt_ia = 0;
 int16_t signle_shunt_ib = 0;
@@ -87,11 +87,11 @@ void motor_get_phase_current_zero(void)
         cnt++;
         motor_get_phase_current_adc(&adc_dc0,&adc_dc1);
         idc_offset_sum += adc_dc0;
-        if(cnt >= (1<<14))
+        if(cnt >= (1<<10))
         {
             int16_t error = 0;
             adc_calibration = 1;
-            idc_offset = idc_offset_sum >> 14;
+            idc_offset = idc_offset_sum >> 10;
             error = idc_offset - (ADC_FULL_BIT >> 1);
             if((error > 500) || (error < -500))
             {
@@ -309,7 +309,6 @@ void motor_phase_current_sampling_shift(uint8_t sector)
     if(*duty_max <= (_pwm_period / 2))
     {
         *duty_max_offset = *duty_max - MIN_EDGE_WIDTH;
-        *duty_max += *duty_max_offset;
     }
     else
     {

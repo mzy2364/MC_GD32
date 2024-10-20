@@ -418,9 +418,19 @@
               <FilePath>..\User\can.c</FilePath>
             </File>
             <File>
-              <FileName>ntc.c</FileName>
+              <FileName>led.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\User\ntc.c</FilePath>
+              <FilePath>..\User\led.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv8323rs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\drv8323rs.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\uart.c</FilePath>
             </File>
             <File>
               <FileName>motor_config.h</FileName>

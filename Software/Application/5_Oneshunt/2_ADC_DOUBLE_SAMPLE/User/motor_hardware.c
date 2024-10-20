@@ -11,31 +11,20 @@
 
 
 /* INCLUDE FILES ------------------------------------------------------------------------------------*/
-#include <string.h>
 #include "motor_hardware.h"
 #include "motor_config.h"
-#include "gd32f30x.h"
-#include "gd32f30x_libopt.h"
 #include "systick.h"
-#include "ringbuffer.h"
 
 /* DEFINES ------------------------------------------------------------------------------------------*/
-#define ARRAYNUM(arr_name)      (uint32_t)(sizeof(arr_name) / sizeof(*(arr_name)))
-#define UART3_DATA_ADDRESS      ((uint32_t)&USART_DATA(UART3))
+
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
-static uint32_t GPIO_PORT[LEDn] = {LED1_GPIO_PORT, LED2_GPIO_PORT,LED3_GPIO_PORT};
-static uint32_t GPIO_PIN[LEDn] = {LED1_PIN, LED2_PIN, LED3_PIN};
-
-uint8_t rxbuffer[32] = {0};
-uint8_t txbuffer[32] = {0};
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 static void pwm_gpio_init(void);
 static void pwm_timer_config(void);
 static void adc_gpio_init(void);
 static void adc0_config(void);
-static void adc1_config(void);
 static void hall_timer_config(void);
 
 /**
@@ -43,10 +32,13 @@ static void hall_timer_config(void);
   * @param None
   * @retval None
   */
-void pwm_init(void)
+void motor_hardware_init(void)
 {
+    interrupt_init();
     pwm_gpio_init();
     pwm_timer_config();
+    hall_init();
+    adc0_init();
 }
 
 /**
@@ -66,124 +58,77 @@ void interrupt_init(void)
 }
 
 /**
+  * @brief update pwm duty
+  * @param duty_u-phase U duty
+  * @param duty_v-phase V duty
+  * @param duty_w-phase W duty
+  * @retval None
+  */
+void motor_pwm_set_duty(uint16_t duty_u,uint16_t duty_v,uint16_t duty_w)
+{
+    timer_channel_output_pulse_value_config(MOTOR_PWM_TIMER,PWM_U_CHANNEL,duty_u);
+    timer_channel_output_pulse_value_config(MOTOR_PWM_TIMER,PWM_V_CHANNEL,duty_v);
+    timer_channel_output_pulse_value_config(MOTOR_PWM_TIMER,PWM_W_CHANNEL,duty_w);
+}
+
+/**
+  * @brief 设置 ADC 的采样时间点
+  * @param None
+  * @retval None
+  * @note
+  */
+void motor_pwm_set_adc_trigger_point(uint16_t trigger_point0, uint16_t trigger_point1)
+{
+    timer_channel_output_pulse_value_config(TIMER1,TIMER_CH_0,trigger_point0);
+    timer_channel_output_pulse_value_config(TIMER1,TIMER_CH_1,trigger_point1);
+}
+
+/**
+  * @brief 获取相电流的 ADC 值
+  * @param None
+  * @retval None
+  * @note
+  */
+void motor_get_phase_current_adc(int16_t *p_ia, int16_t *p_ib)
+{
+	*p_ia = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_0);
+	*p_ib = adc_regular_data_read(ADC0);
+}
+
+/**
   * @brief adc config
   * @param None
   * @retval None
   */
-void adc_init(void)
+void adc0_init(void)
 {
     adc_gpio_init();
     adc0_config();
-    adc1_config();
 }
 
 /**
-  * @brief adc get dc bus voltage
+  * @brief DAC comp config
   * @param None
   * @retval None
   */
-uint16_t adc_get_vdc(void)
+void comp_protect_init(void)
 {
-    /* ADC regular channel config */
-    adc_regular_channel_config(ADC1, 0U, ADC_CHANNEL_14, ADC_SAMPLETIME_7POINT5);
-    /* ADC software trigger enable */
-    adc_software_trigger_enable(ADC1, ADC_REGULAR_CHANNEL);
-
-    /* wait the end of conversion flag */
-    while(!adc_flag_get(ADC1, ADC_FLAG_EOC));
-    /* clear the end of conversion flag */
-    adc_flag_clear(ADC1, ADC_FLAG_EOC);
-    /* return regular channel sample value */
-    return (adc_regular_data_read(ADC1));
-}
-
-/**
-  * @brief adc get ntc vaule
-  * @param None
-  * @retval None
-  */
-uint16_t adc_get_ntc(void)
-{
-    /* ADC regular channel config */
-    adc_regular_channel_config(ADC1, 0U, ADC_CHANNEL_7, ADC_SAMPLETIME_7POINT5);
-    /* ADC software trigger enable */
-    adc_software_trigger_enable(ADC1, ADC_REGULAR_CHANNEL);
-
-    /* wait the end of conversion flag */
-    while(!adc_flag_get(ADC1, ADC_FLAG_EOC));
-    /* clear the end of conversion flag */
-    adc_flag_clear(ADC1, ADC_FLAG_EOC);
-    /* return regular channel sample value */
-    return (adc_regular_data_read(ADC1));
-}
-
-/**
-  * @brief led config
-  * @param None
-  * @retval None
-  */
-void led_init(void)
-{
-    /* enable GPIO clock */
-    rcu_periph_clock_enable(LED1_GPIO_CLK);
-    rcu_periph_clock_enable(LED2_GPIO_CLK);
-    rcu_periph_clock_enable(LED3_GPIO_CLK);
-    rcu_periph_clock_enable(RCU_AF);
+    /* enable the clock of peripherals */
+    rcu_periph_clock_enable(RCU_GPIOA);
+    rcu_periph_clock_enable(RCU_DAC);
     
-    rcu_periph_clock_enable(GPIO1_GPIO_CLK);
-    rcu_periph_clock_enable(GPIO2_GPIO_CLK);
-    rcu_periph_clock_enable(GPIO3_GPIO_CLK);
+    /* once enabled the DAC, the corresponding GPIO pin is connected to the DAC converter automatically */
+    gpio_init(GPIOA, GPIO_MODE_AIN, GPIO_OSPEED_50MHZ, GPIO_PIN_5);
     
-    gpio_pin_remap_config(GPIO_SWJ_SWDPENABLE_REMAP, ENABLE);
-
-    /* configure led GPIO port */ 
-    gpio_init(GPIO_PORT[LED1], GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,GPIO_PIN[LED1]);
-    gpio_init(GPIO_PORT[LED2], GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,GPIO_PIN[LED2]);
-    gpio_init(GPIO_PORT[LED3], GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,GPIO_PIN[LED3]);
+    dac_deinit();
+    /* configure the DAC0 */
+    dac_wave_mode_config(DAC1, DAC_WAVE_MODE_LFSR);
+    dac_lfsr_noise_config(DAC1, DAC_LFSR_BITS10_0);
     
-    GPIO_BC(GPIO_PORT[LED1]) = GPIO_PIN[LED1];
-    GPIO_BC(GPIO_PORT[LED2]) = GPIO_PIN[LED2];
-    GPIO_BC(GPIO_PORT[LED3]) = GPIO_PIN[LED3];
-    
-    gpio_init(GPIO1_GPIO_PORT, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,GPIO1_PIN);
-    gpio_init(GPIO2_GPIO_PORT, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,GPIO2_PIN);
-    gpio_init(GPIO3_GPIO_PORT, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,GPIO3_PIN);
-    
-    gpio_bit_write(GPIO1_GPIO_PORT,GPIO1_PIN,RESET);
-    gpio_bit_write(GPIO2_GPIO_PORT,GPIO2_PIN,RESET);
-    gpio_bit_write(GPIO3_GPIO_PORT,GPIO3_PIN,RESET);
-}
-
-
-/**
-  * @brief turn on selected led
-  * @param lednum: specify the led to be turned on
-  * @retval None
-  */
-void led_on(led_typedef_enum lednum)
-{
-    GPIO_BC(GPIO_PORT[lednum]) = GPIO_PIN[lednum];
-}
-
-/**
-  * @brief turn off selected led
-  * @param lednum: specify the led to be turned on
-  * @retval None
-  */
-void led_off(led_typedef_enum lednum)
-{
-    GPIO_BOP(GPIO_PORT[lednum]) = GPIO_PIN[lednum];
-}
-
-/**
-  * @brief toggle led
-  * @param lednum: specify the led to be turned on
-  * @retval None
-  */
-void led_toggle(led_typedef_enum lednum)
-{
-    gpio_bit_write(GPIO_PORT[lednum], GPIO_PIN[lednum], 
-                    (bit_status)(1-gpio_input_bit_get(GPIO_PORT[lednum], GPIO_PIN[lednum])));
+    /* enable DAC0 and set data */
+    dac_enable(DAC1);
+    //dac_data_set(DAC1, DAC_ALIGN_12B_R, PHASE_OVER_CURRENT_DAC_VAULE);
+    dac_data_set(DAC1, DAC_ALIGN_12B_R, PHASE_OVER_CURRENT_DAC_VAULE);
 }
 
 /**
@@ -224,176 +169,6 @@ uint8_t hall_get(void)
     return ret;
 }
 
-/**
-  * @brief DAC config
-  * @param None
-  * @retval None
-  */
-void dac_init(void)
-{
-    /* enable the clock of peripherals */
-    rcu_periph_clock_enable(RCU_GPIOA);
-    rcu_periph_clock_enable(RCU_DAC);
-    
-    /* once enabled the DAC, the corresponding GPIO pin is connected to the DAC converter automatically */
-    gpio_init(GPIOA, GPIO_MODE_AIN, GPIO_OSPEED_50MHZ, GPIO_PIN_5);
-    
-    dac_deinit();
-    /* configure the DAC0 */
-    dac_wave_mode_config(DAC1, DAC_WAVE_MODE_LFSR);
-    dac_lfsr_noise_config(DAC1, DAC_LFSR_BITS10_0);
-    
-    /* enable DAC0 and set data */
-    dac_enable(DAC1);
-    //dac_data_set(DAC1, DAC_ALIGN_12B_R, PHASE_OVER_CURRENT_DAC_VAULE);
-    dac_data_set(DAC1, DAC_ALIGN_12B_R, (uint16_t)PHASE_OVER_CURRENT_DAC_VAULE);
-}
-
-/**
-  * @brief uart init
-  * @param None
-  * @retval None
-  */
-void usart_init(void)
-{
-    dma_parameter_struct dma_init_struct;
-    
-    /* enable GPIO clock */
-    rcu_periph_clock_enable(RCU_GPIOC);
-    /* enable DMA0 */
-    rcu_periph_clock_enable(RCU_DMA1);
-    /* enable USART clock */
-    rcu_periph_clock_enable(RCU_UART3);
-    
-//    nvic_irq_enable(DMA1_Channel2_IRQn, 0, 0);
-//    nvic_irq_enable(DMA1_Channel3_Channel4_IRQn, 0, 1);
-
-    /* connect port to USARTx_Tx */
-    gpio_init(GPIOC, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_10);
-
-    /* connect port to USARTx_Rx */
-    gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_11);
-
-    /* USART configure */
-    usart_deinit(UART3);
-    usart_baudrate_set(UART3, 921600U);
-    usart_receive_config(UART3, USART_RECEIVE_ENABLE);
-    usart_transmit_config(UART3, USART_TRANSMIT_ENABLE);
-    usart_enable(UART3);
-    
-    /* deinitialize DMA channel4(USART3 tx) */
-    dma_deinit(DMA1, DMA_CH4);
-    dma_struct_para_init(&dma_init_struct);
-    
-    dma_init_struct.direction = DMA_MEMORY_TO_PERIPHERAL;
-    dma_init_struct.memory_addr = (uint32_t)txbuffer;
-    dma_init_struct.memory_inc = DMA_MEMORY_INCREASE_ENABLE;
-    dma_init_struct.memory_width = DMA_MEMORY_WIDTH_8BIT;
-    dma_init_struct.number = ARRAYNUM(txbuffer);
-    dma_init_struct.periph_addr = UART3_DATA_ADDRESS;
-    dma_init_struct.periph_inc = DMA_PERIPH_INCREASE_DISABLE;
-    dma_init_struct.periph_width = DMA_PERIPHERAL_WIDTH_8BIT;
-    dma_init_struct.priority = DMA_PRIORITY_ULTRA_HIGH;
-    dma_init(DMA1, DMA_CH4, &dma_init_struct);
-    
-    /* deinitialize DMA channel4 (UART3 rx) */
-    dma_deinit(DMA1, DMA_CH2);
-    dma_struct_para_init(&dma_init_struct);
-
-    dma_init_struct.direction = DMA_PERIPHERAL_TO_MEMORY;
-    dma_init_struct.memory_addr = (uint32_t)rxbuffer;
-    dma_init_struct.memory_inc = DMA_MEMORY_INCREASE_ENABLE;
-    dma_init_struct.memory_width = DMA_MEMORY_WIDTH_8BIT;
-    dma_init_struct.number = ARRAYNUM(rxbuffer);
-    dma_init_struct.periph_addr = UART3_DATA_ADDRESS;
-    dma_init_struct.periph_inc = DMA_PERIPH_INCREASE_DISABLE;
-    dma_init_struct.periph_width = DMA_PERIPHERAL_WIDTH_8BIT;
-    dma_init_struct.priority = DMA_PRIORITY_ULTRA_HIGH;
-    dma_init(DMA1, DMA_CH2, &dma_init_struct);
-    
-    /* configure DMA mode */
-    dma_circulation_disable(DMA1, DMA_CH4);
-    dma_memory_to_memory_disable(DMA1, DMA_CH4);
-    dma_circulation_disable(DMA1, DMA_CH2);
-    dma_memory_to_memory_disable(DMA1, DMA_CH2);
-    
-    /* enable USART DMA for reception */
-    usart_dma_receive_config(UART3, USART_RECEIVE_DMA_ENABLE);
-    /* enable DMA0 channel4 transfer complete interrupt */
-//    dma_interrupt_enable(DMA1, DMA_CH4, DMA_INT_FTF);
-    /* enable DMA0 channel4 */
-    dma_channel_enable(DMA1, DMA_CH4);
-    /* enable USART DMA for transmission */
-    usart_dma_transmit_config(UART3, USART_TRANSMIT_DMA_ENABLE);
-    /* enable DMA0 channel3 transfer complete interrupt */
-//    dma_interrupt_enable(DMA1, DMA_CH2, DMA_INT_FTF);
-    /* enable DMA0 channel3 */
-    dma_channel_enable(DMA1, DMA_CH2);
-}
-
-/**
-  * @brief Asynchronous transmission
-  * @param None
-  * @retval None
-  */
-void usart_send_data(uint8_t *buf,uint8_t len)
-{
-    if(len < ARRAYNUM(txbuffer))
-    {
-        if(dma_flag_get(DMA1, DMA_CH4, DMA_INTF_FTFIF) == SET)
-        {
-            dma_parameter_struct dma_init_struct;
-            
-            memcpy(txbuffer,buf,len);
-            
-            dma_deinit(DMA1, DMA_CH4);
-            usart_flag_clear(USART0, USART_FLAG_RBNE);
-            usart_dma_receive_config(USART0, USART_RECEIVE_DMA_ENABLE);
-            dma_struct_para_init(&dma_init_struct);
-            dma_init_struct.direction = DMA_MEMORY_TO_PERIPHERAL;
-            dma_init_struct.memory_addr = (uint32_t)txbuffer;
-            dma_init_struct.memory_inc = DMA_MEMORY_INCREASE_ENABLE;
-            dma_init_struct.memory_width = DMA_MEMORY_WIDTH_8BIT;
-            dma_init_struct.number = len;
-            dma_init_struct.periph_addr = UART3_DATA_ADDRESS;
-            dma_init_struct.periph_inc = DMA_PERIPH_INCREASE_DISABLE;
-            dma_init_struct.periph_width = DMA_PERIPHERAL_WIDTH_8BIT;
-            dma_init_struct.priority = DMA_PRIORITY_ULTRA_HIGH;
-            dma_init(DMA1, DMA_CH4, &dma_init_struct);
-            /* configure DMA mode */
-            dma_circulation_disable(DMA1, DMA_CH4); 
-            /* enable DMA channel4 */
-            dma_channel_enable(DMA1, DMA_CH4);
-        }
-    }
-
-}
-
-/**
-  * @brief 设置 ADC 的采样时间点
-  * @param None
-  * @retval None
-  * @note
-  */
-void motor_pwm_set_adc_trigger_point(uint16_t trigger_point0, uint16_t trigger_point1)
-{
-    timer_channel_output_pulse_value_config(TIMER1,TIMER_CH_0,trigger_point0);
-    timer_channel_output_pulse_value_config(TIMER1,TIMER_CH_1,trigger_point1);
-}
-
-/**
-  * @brief 获取相电流的 ADC 值
-  * @param None
-  * @retval None
-  * @note
-  */
-void motor_get_phase_current_adc(int16_t *p_ia, int16_t *p_ib)
-{
-	*p_ia = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_0);
-	*p_ib = adc_regular_data_read(ADC0);
-}
-
-
 
 /* LOCAL FUNCTION -----------------------------------------------------------------------------------*/
 
@@ -430,13 +205,11 @@ static void pwm_gpio_init(void)
 static void adc_gpio_init(void)
 {
     /* enable GPIO clock */
-    rcu_periph_clock_enable(RCU_GPIOA);
-    rcu_periph_clock_enable(RCU_GPIOC);
+    rcu_periph_clock_enable(IDC_ADC_CLK);
+    rcu_periph_clock_enable(IDC_AVER_ADC_CLK);
     
-    gpio_init(GPIOA, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
-    
-    gpio_init(GPIOA, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_7);
-    gpio_init(GPIOC, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_4);
+    gpio_init(IDC_ADC_PORT, GPIO_MODE_AIN, GPIO_OSPEED_MAX, IDC_ADC_PIN);
+    gpio_init(IDC_AVER_ADC_PORT, GPIO_MODE_AIN, GPIO_OSPEED_MAX, IDC_AVER_ADC_PIN);
 }
 
 /**
@@ -542,7 +315,7 @@ static void pwm_timer_config(void)
     timer_breakpara.runoffstate      = TIMER_ROS_STATE_ENABLE;
     timer_breakpara.ideloffstate     = TIMER_IOS_STATE_ENABLE ;
     timer_breakpara.deadtime         = 0x88;        /* 1.2us */
-    timer_breakpara.breakpolarity    = TIMER_BREAK_POLARITY_HIGH;
+    timer_breakpara.breakpolarity    = TIMER_BREAK_POLARITY_LOW;
     timer_breakpara.outputautostate  = TIMER_OUTAUTO_ENABLE;
     timer_breakpara.protectmode      = TIMER_CCHP_PROT_OFF;
     timer_breakpara.breakstate       = TIMER_BREAK_ENABLE;
@@ -592,9 +365,10 @@ static void adc0_config(void)
     adc_data_alignment_config(ADC0, ADC_DATAALIGN_RIGHT);
 
     /* ADC channel length config */
-    adc_channel_length_config(ADC0, ADC_INSERTED_CHANNEL, 1);
+    adc_channel_length_config(ADC0, ADC_INSERTED_CHANNEL, 2);
     /* ADC inserted channel config */
-    adc_inserted_channel_config(ADC0, 0, ADC_CHANNEL_1, ADC_SAMPLETIME_1POINT5);
+    adc_inserted_channel_config(ADC0, IDC_INSERTED_CHANNEL, IDC_ADC_CHANNEL, ADC_SAMPLETIME_1POINT5);
+    adc_inserted_channel_config(ADC0, ONE_SHUNT_IDC_AVER_INSERTED_CHANNEL, IDC_AVER_ADC_CHANNEL, ADC_SAMPLETIME_1POINT5);
     /* ADC trigger config */
     adc_external_trigger_source_config(ADC0, ADC_INSERTED_CHANNEL, ADC0_1_EXTTRIG_INSERTED_T1_CH0); 
     /* ADC external trigger enable */
@@ -623,37 +397,6 @@ static void adc0_config(void)
     systick_delay(1);
     /* ADC calibration and reset calibration */
     adc_calibration_enable(ADC0);
-}
-
-/**
-  * @brief adc1 init
-  * @param None
-  * @retval None
-  */
-static void adc1_config(void)
-{
-    /* enable ADC clock */
-    rcu_periph_clock_enable(RCU_ADC1);
-    /* config ADC clock */
-    rcu_adc_clock_config(RCU_CKADC_CKAPB2_DIV6);
-    
-    /* ADC mode config */
-    adc_mode_config(ADC_MODE_FREE);
-    /* ADC data alignment config */
-    adc_data_alignment_config(ADC1, ADC_DATAALIGN_RIGHT);
-    /* ADC channel length config */
-    adc_channel_length_config(ADC1, ADC_REGULAR_CHANNEL, 1U);
-    
-    /* ADC trigger config */
-    adc_external_trigger_source_config(ADC1, ADC_REGULAR_CHANNEL, ADC0_1_2_EXTTRIG_REGULAR_NONE); 
-    /* ADC external trigger config */
-    adc_external_trigger_config(ADC1, ADC_REGULAR_CHANNEL, ENABLE);
-
-    /* enable ADC interface */
-    adc_enable(ADC1);
-    systick_delay(1U);
-    /* ADC calibration and reset calibration */
-    adc_calibration_enable(ADC1);
 }
 
 /**
@@ -716,32 +459,6 @@ static void hall_timer_config(void)
 
     /* TIMER2 counter enable */
     timer_enable(TIMER2);
-}
-
-/*!
-    \brief      this function handles DMA0_Channel3_IRQHandler interrupt
-    \param[in]  none
-    \param[out] none
-    \retval     none
-*/
-void DMA1_Channel2_IRQHandler(void)
-{
-    if(dma_interrupt_flag_get(DMA1, DMA_CH4, DMA_INT_FLAG_FTF)) {
-        dma_interrupt_flag_clear(DMA1, DMA_CH4, DMA_INT_FLAG_G);
-    }
-}
-
-/*!
-    \brief      this function handles DMA0_Channel4_IRQHandler interrupt
-    \param[in]  none
-    \param[out] none
-    \retval     none
-*/
-void DMA1_Channel3_4_IRQHandler(void)
-{
-    if(dma_interrupt_flag_get(DMA1, DMA_CH4, DMA_INT_FLAG_FTF)) {
-        dma_interrupt_flag_clear(DMA1, DMA_CH4, DMA_INT_FLAG_G);
-    }
 }
 
 /***************************************** (END OF FILE) *********************************************/

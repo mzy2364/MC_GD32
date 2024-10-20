@@ -78,10 +78,10 @@ void smc_init_parameters(smc_t *psmc)
     psmc->kslide = MA_SMCGAIN;
     psmc->max_smc_error = MA_MAXLINEARSMC;
     psmc->filt_omega_coef = LOOPTIME_SEC * M_PI * 2 * (OPEN_LOOP_END_SPEED_RPM * MOTOR_NOPOLESPAIRS / 60);  //T*2¦Ð*fc  fc = erps
-    psmc->kslf = psmc->kslf_final = psmc->filt_omega_coef;
-    psmc->theta_offset = (90 * (M_PI/180));
+    psmc->kslf = psmc->filt_omega_coef;
     
-    psmc->pll_kp = 30;
+    psmc->pll_err_sum = 0;
+    psmc->pll_kp = 20;
     psmc->pll_ki = 0.1;
 
 }
@@ -128,10 +128,6 @@ void smc_position_estimation (smc_t *psmc)
     psmc->ealpha = psmc->ealpha + psmc->kslf * (psmc->zalpha - psmc->ealpha);
     psmc->ebeta = psmc->ebeta + psmc->kslf * (psmc->zbeta - psmc->ebeta);
     
-    /* back EMF filter */
-    psmc->ealpha_final = psmc->ealpha_final + psmc->kslf_final * (psmc->ealpha - psmc->ealpha_final);
-    psmc->ebeta_final = psmc->ebeta_final + psmc->kslf_final * (psmc->ebeta - psmc->ebeta_final);
-    
     /* pll omega and theta calculator */
     calc_pll(psmc);
 }
@@ -145,10 +141,10 @@ static void calc_pll(smc_t *psmc)
     float sin_value = 0;
     float cos_value = 0;
     
-    cos_value = arm_cos_f32(psmc->theta + psmc->theta_offset);
-    sin_value = arm_sin_f32(psmc->theta + psmc->theta_offset);
+    cos_value = arm_cos_f32(psmc->theta);
+    sin_value = arm_sin_f32(psmc->theta);
     
-    psmc->pll_err = -psmc->ealpha_final * cos_value - psmc->ebeta_final * sin_value;
+    psmc->pll_err = -psmc->ealpha * cos_value - psmc->ebeta * sin_value;
 
     psmc->pll_err = (psmc->pll_err > PI/6)  ?  (PI/6) : (psmc->pll_err);
     psmc->pll_err = (psmc->pll_err < -PI/6) ? (-PI/6) : (psmc->pll_err);

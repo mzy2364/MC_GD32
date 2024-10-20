@@ -49,7 +49,7 @@ void uart3_init(void)
     
     /* USART configure */
     usart_deinit(UART3);
-    usart_baudrate_set(UART3, 921600U);
+    usart_baudrate_set(UART3, 115200U);
     usart_receive_config(UART3, USART_RECEIVE_ENABLE);
     usart_transmit_config(UART3, USART_TRANSMIT_ENABLE);
     usart_interrupt_enable(UART3, USART_INT_RBNE);

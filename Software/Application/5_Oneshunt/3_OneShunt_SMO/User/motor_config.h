@@ -23,20 +23,20 @@ extern "C"{
 #define ADC_FULLSCALE_VOLT              (float)3.3
 #define ADC_FULL_BIT                    (1<<12)
 #define SHUNT_RES                       (float)0.005
-#define SHUNT_OPA_GAIN                  (float)8
+#define SHUNT_OPA_GAIN                  (float)10
     
-#define VDC_SERIES_RES                  (float)75000
-#define VDC_PARALLEL_RES                (float)3000
+#define VDC_SERIES_RES                  (float)100000
+#define VDC_PARALLEL_RES                (float)5100
     
 #define ADC_TO_CURRENT_COEF             (float)(ADC_FULLSCALE_VOLT/ADC_FULL_BIT/SHUNT_RES/SHUNT_OPA_GAIN)
 #define ADC_TO_VDC_COEF                 (float)((VDC_SERIES_RES+VDC_PARALLEL_RES)/VDC_PARALLEL_RES*ADC_FULLSCALE_VOLT/ADC_FULL_BIT)
 
 #define PHASE_OVER_CURRENT_AMP          (float)15
-#define PHASE_OVER_CURRENT_DAC_VAULE    ((float)(2048.0f+PHASE_OVER_CURRENT_AMP*SHUNT_RES*SHUNT_OPA_GAIN*ADC_FULL_BIT/ADC_FULLSCALE_VOLT))
+#define PHASE_OVER_CURRENT_DAC_VAULE    (float)(2048.0f + PHASE_OVER_CURRENT_AMP*SHUNT_RES*SHUNT_OPA_GAIN*ADC_FULL_BIT/ADC_FULLSCALE_VOLT)
     
 #define SYSTEM_CORE_CLOCK               120000000
 #define PWM_PRESCALER                   0
-#define MOTOR_PWM_FREQ_HZ               10000
+#define MOTOR_PWM_FREQ_HZ               16000
 #define MOTOR_PWM_PERIOD                ((SYSTEM_CORE_CLOCK/(PWM_PRESCALER+1)/MOTOR_PWM_FREQ_HZ/2)-1)
 
 #define HALL_TIMER_PRESCALER            119

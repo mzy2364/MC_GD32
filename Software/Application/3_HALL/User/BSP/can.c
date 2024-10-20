@@ -39,6 +39,12 @@ void can_bus_init(void)
 }
 
 
+void USBD_LP_CAN0_RX0_IRQHandler(void)
+{
+    can_fifo_release(CAN0,CAN_FIFO0);
+    can_fifo_release(CAN0,CAN_FIFO1);
+}
+
 
 /* LOCAL FUNCTION -----------------------------------------------------------------------------------*/
 /*!

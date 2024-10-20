@@ -26,7 +26,9 @@ extern "C"{
 
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
+void spi0_init(void);
 void spi2_init(void);
+uint16_t spi0_transmit_receive_data(uint16_t data);
 uint8_t spi2_transmit_receive_data(uint8_t data);
 
 #ifdef __cplusplus

@@ -33,11 +33,14 @@ typedef struct{
     float vel_input;
     float vel_ref;
     float vel_diff;
+    float actual_speed;
     
     float id_ref;
     float iq_ref;
     
     float hall_speed;
+    
+    float max_phase_voltage;
     
     uint32_t speed_loop_count;
     

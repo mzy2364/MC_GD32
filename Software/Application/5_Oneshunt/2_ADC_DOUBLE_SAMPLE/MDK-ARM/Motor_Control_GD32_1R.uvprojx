@@ -423,6 +423,21 @@
               <FilePath>..\User\ntc.c</FilePath>
             </File>
             <File>
+              <FileName>drv8323rs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\drv8323rs.c</FilePath>
+            </File>
+            <File>
+              <FileName>led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\led.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\uart.c</FilePath>
+            </File>
+            <File>
               <FileName>motor_config.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\User\motor_config.h</FilePath>

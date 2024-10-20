@@ -50,7 +50,7 @@ int main(void)
         ntc_adc = adc_get_ntc();
         temperature = calculate_temperature_float(ntc_adc);
         vdc_adc = adc_get_vdc();
-        vdc_voltage = (float)vdc_adc * 3.3 / 4096 * 26;
+        vdc_voltage = (float)vdc_adc * 3.3f * 20.6f / 4096;
         
         memcpy(&uart_tx_buf[0],&temperature,4);
         memcpy(&uart_tx_buf[4],&vdc_voltage,4);

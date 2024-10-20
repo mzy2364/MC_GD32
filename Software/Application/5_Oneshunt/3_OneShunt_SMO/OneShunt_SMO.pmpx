@@ -666,7 +666,7 @@
 			<member name="laxis_min" type="real64">0.00000000000000000000e+00</member>
 			<member name="laxis_max" type="real64">1.00000000000000000000e+03</member>
 			<member name="laxis_min_auto" type="sint32">0</member>
-			<member name="laxis_max_auto" type="sint32">0</member>
+			<member name="laxis_max_auto" type="sint32">1</member>
 			<member name="raxis_label" type="string">rAxis</member>
 			<member name="raxis_style" type="sint32">0</member>
 			<member name="raxis_min" type="real64">-1.00000000000000000000e+01</member>

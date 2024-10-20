@@ -31,10 +31,9 @@
 void adc1_init(void)
 {
     /* gpio init */
-    rcu_periph_clock_enable(RCU_GPIOA);
     rcu_periph_clock_enable(RCU_GPIOC);
-    gpio_init(GPIOA, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_7);
-    gpio_init(GPIOC, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_4);
+    gpio_init(GPIOC, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_2);
+    gpio_init(GPIOC, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_3);
     
     /* enable ADC clock */
     rcu_periph_clock_enable(RCU_ADC1);
@@ -68,7 +67,7 @@ void adc1_init(void)
 uint16_t adc_get_vdc(void)
 {
     /* ADC regular channel config */
-    adc_regular_channel_config(ADC1, 0U, ADC_CHANNEL_14, ADC_SAMPLETIME_7POINT5);
+    adc_regular_channel_config(ADC1, 0U, ADC_CHANNEL_13, ADC_SAMPLETIME_7POINT5);
     /* ADC software trigger enable */
     adc_software_trigger_enable(ADC1, ADC_REGULAR_CHANNEL);
 
@@ -88,7 +87,7 @@ uint16_t adc_get_vdc(void)
 uint16_t adc_get_ntc(void)
 {
     /* ADC regular channel config */
-    adc_regular_channel_config(ADC1, 0U, ADC_CHANNEL_7, ADC_SAMPLETIME_7POINT5);
+    adc_regular_channel_config(ADC1, 0U, ADC_CHANNEL_12, ADC_SAMPLETIME_7POINT5);
     /* ADC software trigger enable */
     adc_software_trigger_enable(ADC1, ADC_REGULAR_CHANNEL);
 

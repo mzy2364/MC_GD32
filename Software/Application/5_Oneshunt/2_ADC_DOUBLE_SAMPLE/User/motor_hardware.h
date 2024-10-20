@@ -17,82 +17,102 @@ extern "C"{
 
 /* INCLUDE FILES ------------------------------------------------------------------------------------*/
 #include "gd32f30x.h"
+#include "motor_config.h"
 
 
 /* DEFINES ------------------------------------------------------------------------------------------*/
-#define LEDn                             3U
+#define MOTOR_PWM_TIMER     TIMER0
+#define PWM_U_CHANNEL       TIMER_CH_2
+#define PWM_V_CHANNEL       TIMER_CH_1
+#define PWM_W_CHANNEL       TIMER_CH_0
 
-#define LED1_PIN                         GPIO_PIN_2
-#define LED1_GPIO_PORT                   GPIOD
-#define LED1_GPIO_CLK                    RCU_GPIOD
-  
-#define LED2_PIN                         GPIO_PIN_12
-#define LED2_GPIO_PORT                   GPIOC
-#define LED2_GPIO_CLK                    RCU_GPIOC
-  
-#define LED3_PIN                         GPIO_PIN_15
-#define LED3_GPIO_PORT                   GPIOA
-#define LED3_GPIO_CLK                    RCU_GPIOA
+#define MOTOR_CURRENT_ADC       ADC0
+#define IU_INSERTED_CHANNEL     ADC_INSERTED_CHANNEL_0
+#define IV_INSERTED_CHANNEL     ADC_INSERTED_CHANNEL_1
+#define IW_INSERTED_CHANNEL     ADC_INSERTED_CHANNEL_2
+#define IDC_AVER_INSERTED_CHANNEL    ADC_INSERTED_CHANNEL_3
 
-#define GPIO3_PIN                        GPIO_PIN_0
-#define GPIO3_GPIO_PORT                  GPIOC
-#define GPIO3_GPIO_CLK                   RCU_GPIOC
+/* signal shunt */
+#define IDC_INSERTED_CHANNEL                    ADC_INSERTED_CHANNEL_0
+#define ONE_SHUNT_IDC_AVER_INSERTED_CHANNEL     ADC_INSERTED_CHANNEL_1
 
-#define GPIO2_PIN                        GPIO_PIN_7
-#define GPIO2_GPIO_PORT                  GPIOB
-#define GPIO2_GPIO_CLK                   RCU_GPIOB
+#define IU_ADC_PORT         GPIOC
+#define IU_ADC_PIN          GPIO_PIN_4
+#define IU_ADC_CLK          RCU_GPIOC
+#define IU_ADC_CHANNEL      ADC_CHANNEL_14
 
-#define GPIO1_PIN                        GPIO_PIN_6
-#define GPIO1_GPIO_PORT                  GPIOB
-#define GPIO1_GPIO_CLK                   RCU_GPIOB
+#define IV_ADC_PORT         GPIOC
+#define IV_ADC_PIN          GPIO_PIN_5
+#define IV_ADC_CLK          RCU_GPIOC
+#define IV_ADC_CHANNEL      ADC_CHANNEL_15
 
-#define HALLA_GPIO_PORT                 GPIOC
-#define HALLA_GPIO_PIN                  GPIO_PIN_6
-#define HALLA_GPIO_CLK                  RCU_GPIOC
+#define IW_ADC_PORT         GPIOB
+#define IW_ADC_PIN          GPIO_PIN_0
+#define IW_ADC_CLK          RCU_GPIOB
+#define IW_ADC_CHANNEL      ADC_CHANNEL_8
 
-#define HALLB_GPIO_PORT                 GPIOC
-#define HALLB_GPIO_PIN                  GPIO_PIN_7
-#define HALLB_GPIO_CLK                  RCU_GPIOC
+#define IDC_ADC_PORT        GPIOB
+#define IDC_ADC_PIN         GPIO_PIN_1
+#define IDC_ADC_CLK         RCU_GPIOB
+#define IDC_ADC_CHANNEL     ADC_CHANNEL_9
 
-#define HALLC_GPIO_PORT                 GPIOC
-#define HALLC_GPIO_PIN                  GPIO_PIN_8
-#define HALLC_GPIO_CLK                  RCU_GPIOC
+#define IDC_AVER_ADC_PORT        GPIOA
+#define IDC_AVER_ADC_PIN         GPIO_PIN_3
+#define IDC_AVER_ADC_CLK         RCU_GPIOA
+#define IDC_AVER_ADC_CHANNEL     ADC_CHANNEL_3
 
+#define BEMFU_ADC_PORT      GPIOA
+#define BEMFU_ADC_PIN       GPIO_PIN_0
+#define BEMFU_ADC_CLK       RCU_GPIOA
+#define BEMFU_ADC_CHANNEL   ADC_CHANNEL_0
 
-typedef enum 
-{
-    LED1 = 0,
-    LED2 = 1,
-    LED3 = 2
-} led_typedef_enum;
+#define BEMFV_ADC_PORT      GPIOA
+#define BEMFV_ADC_PIN       GPIO_PIN_1
+#define BEMFV_ADC_CLK       RCU_GPIOA
+#define BEMFV_ADC_CHANNEL   ADC_CHANNEL_1
 
-#define LED_FAULT                       LED3
-#define LED_SYS                         LED2
+#define BEMFW_ADC_PORT      GPIOA
+#define BEMFW_ADC_PIN       GPIO_PIN_2
+#define BEMFW_ADC_CLK       RCU_GPIOA
+#define BEMFW_ADC_CHANNEL   ADC_CHANNEL_2
+
+#define USER_IO1_PORT       GPIOB
+#define USER_IO1_PIN        GPIO_PIN_6
+#define USER_IO1_CLK        RCU_GPIOB
+
+#define USER_IO3_PORT       GPIOC
+#define USER_IO3_PIN        GPIO_PIN_0
+#define USER_IO3_CLK        RCU_GPIOC
+
+#define USER_IO2_PORT       GPIOB
+#define USER_IO2_PIN        GPIO_PIN_7
+#define USER_IO2_CLK        RCU_GPIOB
+
+#define HALLA_GPIO_PORT     GPIOC
+#define HALLA_GPIO_PIN      GPIO_PIN_6
+#define HALLA_GPIO_CLK      RCU_GPIOC
+
+#define HALLB_GPIO_PORT     GPIOC
+#define HALLB_GPIO_PIN      GPIO_PIN_7
+#define HALLB_GPIO_CLK      RCU_GPIOC
+
+#define HALLC_GPIO_PORT     GPIOC
+#define HALLC_GPIO_PIN      GPIO_PIN_8
+#define HALLC_GPIO_CLK      RCU_GPIOC
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
 
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
-void pwm_init(void);
+void motor_hardware_init(void);
+void adc0_init(void);
 void interrupt_init(void);
-void adc_init(void);
-void usart_init(void);
-void usart_send_data(uint8_t *buf,uint8_t len);
-void led_init(void);
-void led_on(led_typedef_enum lednum);
-void led_off(led_typedef_enum lednum);
-void led_toggle(led_typedef_enum lednum);
-void dac_init(void);
+void comp_protect_init(void);
 void hall_init(void);
 uint8_t hall_get(void);
-
-uint16_t adc_get_vdc(void);
-uint16_t adc_get_ntc(void);
-
-void motor_get_phase_current_adc(int16_t *p_ia, int16_t *p_ib);
+void motor_pwm_set_duty(uint16_t duty_u,uint16_t duty_v,uint16_t duty_w);
 void motor_pwm_set_adc_trigger_point(uint16_t trigger_point0, uint16_t trigger_point1);
-
-float calculate_temperature_float(uint16_t ntc_adc);
+void motor_get_phase_current_adc(int16_t *p_ia, int16_t *p_ib);
 
 #ifdef __cplusplus
 extern "C"{

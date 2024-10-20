@@ -15,6 +15,9 @@
 #include "gd32f30x_libopt.h"
 #include "motor_hardware.h"
 #include "motor_config.h"
+#include "led.h"
+#include "uart.h"
+#include "drv8323rs.h"
 #include "systick.h"
 #include <string.h>
 
@@ -41,16 +44,26 @@ int main(void)
     
     systick_init();
     led_init();
+    usart_init();
     led_off(LED1);
     led_off(LED2);
     led_off(LED3);
-    interrupt_init();
-    dac_init();
-    adc_init();
-    pwm_init();
-    usart_init();
-
-    gpio_bit_write(GPIO3_GPIO_PORT,GPIO3_PIN,RESET);
+    DRV8323RS_init();
+    
+    motor_hardware_init();
+    
+    rcu_periph_clock_enable(USER_IO1_CLK);
+    rcu_periph_clock_enable(USER_IO2_CLK);
+    rcu_periph_clock_enable(USER_IO3_CLK);
+    gpio_pin_remap_config(GPIO_SWJ_SWDPENABLE_REMAP, ENABLE);
+    
+    gpio_init(USER_IO1_PORT, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,USER_IO1_PIN);
+    gpio_init(USER_IO2_PORT, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,USER_IO2_PIN);
+    gpio_init(USER_IO3_PORT, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ,USER_IO3_PIN);
+    
+    gpio_bit_write(USER_IO1_PORT,USER_IO1_PIN,RESET);
+    gpio_bit_write(USER_IO2_PORT,USER_IO2_PIN,RESET);
+    gpio_bit_write(USER_IO3_PORT,USER_IO3_PIN,RESET);
 
     /* 初始化占空比 */
     duty_u_ref = (float)MOTOR_PWM_PERIOD / 3;          /* 33% */
@@ -70,7 +83,7 @@ void TIMER0_UP_IRQHandler(void)
     if(timer_counter_read(TIMER0) > MOTOR_PWM_PERIOD / 2)
     {
         /* 上溢和下溢都会触发UP中断,只有在计数值向上溢出的时候才需要翻转GPIO */
-        gpio_bit_write(GPIO3_GPIO_PORT,GPIO3_PIN,(bit_status)(1-gpio_input_bit_get(GPIO3_GPIO_PORT,GPIO3_PIN)));
+        gpio_bit_write(USER_IO3_PORT,USER_IO3_PIN,(bit_status)(1-gpio_input_bit_get(USER_IO3_PORT,USER_IO3_PIN)));
     }
 }
 
@@ -85,7 +98,6 @@ void TIMER0_BRK_IRQHandler(void)
     timer_disable(TIMER0);
     timer_disable(TIMER1);
     
-    gpio_bit_write(GPIO2_GPIO_PORT,GPIO2_PIN,SET);
     led_on(LED_FAULT);
 }
 
@@ -148,10 +160,10 @@ void TIMER0_Channel_IRQHandler(void)
 void ADC0_1_IRQHandler(void)
 {
     /* clear the ADC flag */
-    gpio_bit_write(GPIO3_GPIO_PORT,GPIO3_PIN,SET);
+    gpio_bit_write(USER_IO3_PORT,USER_IO3_PIN,SET);
     adc_interrupt_flag_clear(ADC0, ADC_INT_FLAG_EOIC);
     adc_interrupt_flag_clear(ADC0, ADC_INT_FLAG_EOC);
-    gpio_bit_write(GPIO3_GPIO_PORT,GPIO3_PIN,RESET);
+    gpio_bit_write(USER_IO3_PORT,USER_IO3_PIN,RESET);
 }
 
 

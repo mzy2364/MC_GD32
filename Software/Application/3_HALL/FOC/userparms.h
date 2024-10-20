@@ -34,6 +34,8 @@ extern "C"{
 ==================================================================================================*/
 /*************** General Parameters ********************************************/
 #define RPM_TO_RADS                                     ((float)2*M_PI/60)
+    
+#define HALL_DEBUG                                      0
 
 /*************** Motor Parameters *********************************************/
 //24V
@@ -84,22 +86,26 @@ extern "C"{
 #define LOCK_TIME_SEC  		                            0.1
 #define LOCK_COUNTER                                    (unsigned int)((float)LOCK_TIME_SEC/(float)LOOPTIME_SEC)
 
-#define OPENLOOPTIMEINSEC 	                            3
-#define OPEN_LOOP_END_SPEED_RPM                         2000
+#define OPENLOOPTIMEINSEC 	                            1
+#define OPEN_LOOP_END_SPEED_RPM                         500
 
 #define END_SPEED_RADS_MECH                             (float)(OPEN_LOOP_END_SPEED_RPM*RPM_TO_RADS)
 #define END_SPEED_RADS_ELEC                             (float)(END_SPEED_RADS_MECH*MOTOR_NOPOLESPAIRS)
 #define END_SPEED_RADS_ELEC_COUNTER                     (float)(END_SPEED_RADS_ELEC * LOOPTIME_SEC)
 #define OPENLOOP_RAMPSPEED_INCREASERATE                 (float)(END_SPEED_RADS_ELEC_COUNTER/(OPENLOOPTIMEINSEC/LOOPTIME_SEC))
     
-#define CL_RAMP_RATE_RPM_SEC                             3000 // CLosed Loop Speed Ramp rate in Rev/min/Sec
+#define CL_RAMP_RATE_RPM_SEC                             500 // CLosed Loop Speed Ramp rate in Rev/min/Sec
 #define CL_RAMP_RATE_RPS_SEC                             ((float)CL_RAMP_RATE_RPM_SEC/60) // CLosed Loop  Speed Ramp rate in Rev/sec^2 
 #define CL_RAMP_RATE_RADS_PER_SEC2_MECH                  (float)(CL_RAMP_RATE_RPS_SEC*2*M_PI) // CLosed Loop  Speed Ramp Rate in Mechanical Radians/Sec^2
 #define CL_RAMP_RATE_RADS_PER_SEC2_ELEC                  (float)(CL_RAMP_RATE_RADS_PER_SEC2_MECH*MOTOR_NOPOLESPAIRS) // CLosed Loop  Speed Ramp rate in Electrical Radians/Sec^2
 #define CL_SPEED_RAMP_RATE_DELTA                         (float)(CL_RAMP_RATE_RADS_PER_SEC2_ELEC*LOOPTIME_SEC) // CLosed Loop  Speed Ramp Rate in Electrical Radians/sec^2 in each control loop time
 #define CL_SPEED_HYSTERESIS                              (float)(5*CL_SPEED_RAMP_RATE_DELTA)
     
-#define NOMINAL_SPEED_RPM                                   (float)6000 // Value in RPM
+#define MIN_SPEED_RPM                                      (float)100
+#define MIN_SPEED_RAD_PER_SEC_ELEC                      (float)(((MIN_SPEED_RPM/60)*2*M_PI)*MOTOR_NOPOLESPAIRS) // Value in RPM
+ 
+
+#define NOMINAL_SPEED_RPM                                   (float)3000 // Value in RPM
 #define NOMINAL_SPEED_RAD_PER_SEC_ELEC                      (float)(((NOMINAL_SPEED_RPM/60)*2*M_PI)*MOTOR_NOPOLESPAIRS) // Value in RPM
 
     
@@ -124,7 +130,10 @@ extern "C"{
 #define     WOUTMAX    (10)
 
 
-//#define OPEN_LOOP_MODE
+
+#if(HALL_DEBUG == 1)
+#define OPEN_LOOP_MODE
+#endif
 //#define OPEN_LOOP_VF_VQ     0.3f
 
 #ifdef __cplusplus

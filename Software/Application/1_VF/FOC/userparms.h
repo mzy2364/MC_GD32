@@ -90,7 +90,7 @@ extern "C"{
 
 
 #define OPEN_LOOP_MODE
-#define OPEN_LOOP_VF_VQ     0.6f
+#define OPEN_LOOP_VF_VQ     0.3f
 
 #ifdef __cplusplus
 }

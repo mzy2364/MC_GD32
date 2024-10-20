@@ -22,6 +22,7 @@
 #include "eeprom.h"
 #include "delay.h"
 #include "adc_simple.h"
+#include "drv8323rs.h"
 #include "lcd.h"
 #include "lcd_init.h"
 #include "can.h"
@@ -33,8 +34,8 @@
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
 uint8_t adc_calibration = 0;
-uint32_t ia_offset = 0,ib_offset = 0;
-uint16_t adc1_ia = 0,adc1_ib = 0;
+uint32_t ia_offset = 0,ib_offset = 0,ic_offset = 0;
+uint16_t adc_ia = 0,adc_ib = 0,adc_ic = 0;
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 
@@ -52,8 +53,10 @@ int main(void)
     systick_init();
     led_init();
     usart_init();
+    DRV8323RS_init();
     
     motor_hardware_init();
+    motor_pwm_enable();
     pmsm_foc_param.pwm_period = (float)MOTOR_PWM_PERIOD * 0.95f;
     pmsm_foc_init();
     
@@ -92,28 +95,36 @@ void ADC0_1_IRQHandler(void)
         static uint16_t cnt;
         
         cnt++;
-        adc1_ia = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_3);
-        adc1_ib = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_2);
-        ia_offset += adc1_ia;
-        ib_offset += adc1_ib;
+        adc_ia = adc_inserted_data_read(ADC0, IU_INSERTED_CHANNEL);
+        adc_ib = adc_inserted_data_read(ADC0, IV_INSERTED_CHANNEL);
+        adc_ic = adc_inserted_data_read(ADC0, IW_INSERTED_CHANNEL);
+        
+        ia_offset += adc_ia;
+        ib_offset += adc_ib;
+        ic_offset += adc_ic;
+        
         if(cnt >= (1 << 12))
         {
             adc_calibration = 1;
             ia_offset = ia_offset >> 12;
             ib_offset = ib_offset >> 12;
+            ic_offset = ic_offset >> 12;
         }
     }
     else
     {
         /* read ADC inserted group data register */
-        adc1_ia = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_3);
-        adc1_ib = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_2);
+        adc_ia = adc_inserted_data_read(ADC0, IU_INSERTED_CHANNEL);
+        adc_ib = adc_inserted_data_read(ADC0, IV_INSERTED_CHANNEL);
+        adc_ic = adc_inserted_data_read(ADC0, IW_INSERTED_CHANNEL);
 
-        temp1 = ((float)ia_offset - adc1_ia) * ADC_TO_CURRENT_COEF;
-        temp2 = ((float)ib_offset - adc1_ib) * ADC_TO_CURRENT_COEF;
+        temp1 = ((float)adc_ia - ia_offset) * ADC_TO_CURRENT_COEF;
+        temp2 = ((float)adc_ib - ib_offset) * ADC_TO_CURRENT_COEF;
+        temp3 = ((float)adc_ic - ic_offset) * ADC_TO_CURRENT_COEF;
         
         pmsm_foc_param.ia = temp1;
         pmsm_foc_param.ib = temp2;
+        pmsm_foc_param.ic = temp3;
         
         pmsm_foc_run();
         
@@ -121,15 +132,13 @@ void ADC0_1_IRQHandler(void)
         memcpy(&uart_data[0],&temp1,4);
         temp2 = (float)pmsm_foc_param.ib;
         memcpy(&uart_data[4],&temp2,4);
-        temp3 = (float)pmsm_foc_param.iq;
+        temp3 = (float)pmsm_foc_param.ic;
         memcpy(&uart_data[8],&temp3,4);
         uart_data[sizeof(uart_data)-2] = 0x80;
         uart_data[sizeof(uart_data)-1] = 0x7f;
         usart_send_data(uart_data,sizeof(uart_data));
         
-        timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_2,pmsm_foc_param.pwma);
-        timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_1,pmsm_foc_param.pwmb);
-        timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_0,pmsm_foc_param.pwmc);
+        motor_pwm_set_duty(pmsm_foc_param.pwma,pmsm_foc_param.pwmb,pmsm_foc_param.pwmc);
     }
 }
 

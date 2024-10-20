@@ -12,6 +12,9 @@
 extern "C"{
 #endif
 
+#define ADC_FILTER_COUNT_POWER  4
+#define ADC_FILTER_COUNT        (1<<ADC_FILTER_COUNT_POWER)
+
 void task_init(void);
 void task_scheduler(void);
 

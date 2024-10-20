@@ -37,25 +37,21 @@ extern "C"{
 
 /*************** Motor Parameters *********************************************/
 //24V
-//#define MOTOR_PHASE_RESISTANCE                          ((float)0.12)
-//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.000143f)
-//#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
-//#define MOTOR_BACK_EMF_Vpeak                            (float)1.24
+//#define MOTOR_PHASE_RESISTANCE                          ((float)0.42)
+//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.000334f)
 //#define MOTOR_NOPOLESPAIRS                               2
 
 //12V
-//#define     MOTOR_PHASE_RESISTANCE                          ((float)0.063f)			// Resistance in Ohms 相电阻
-//#define     MOTOR_PHASE_INDUCTANCE                          ((float)0.000032f)		// Inductance in Henrys	 相电感
-//#define     MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
-//#define     MOTOR_BACK_EMF_Vpeak   (float)0.85f				// Back EMF Constant in Vpeak/KRPM
+//#define     MOTOR_PHASE_RESISTANCE                          ((float)0.047f)			// Resistance in Ohms 相电阻
+//#define     MOTOR_PHASE_INDUCTANCE                          ((float)0.000177)		// Inductance in Henrys	 相电感
 //#define     MOTOR_NOPOLESPAIRS                                        2						//极对数
 
 //57BL
-#define MOTOR_PHASE_RESISTANCE                          ((float)0.42)
-#define MOTOR_PHASE_INDUCTANCE                          ((float)0.00112)
-#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
-#define MOTOR_BACK_EMF_Vpeak                            (float)4.27
-#define MOTOR_NOPOLESPAIRS                               2
+//#define MOTOR_PHASE_RESISTANCE                          ((float)0.42)
+//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.00112)
+//#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
+//#define MOTOR_BACK_EMF_Vpeak                            (float)4.27
+//#define MOTOR_NOPOLESPAIRS                               2
 
 
 //60V DC
@@ -66,25 +62,41 @@ extern "C"{
 //#define MOTOR_NOPOLESPAIRS                               2
 
 //105V DC
-//#define MOTOR_PHASE_RESISTANCE                          ((float)3.485)
-//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.002675)
-//#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
-//#define MOTOR_BACK_EMF_Vpeak                            (float)12.25
+#define MOTOR_PHASE_RESISTANCE                          ((float)6.97)
+#define MOTOR_PHASE_INDUCTANCE                          ((float)0.00535)
+#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
+#define MOTOR_BACK_EMF_Vpeak                            (float)12.25
+#define MOTOR_NOPOLESPAIRS                               2
+
+//25.2V 500W
+//#define MOTOR_PHASE_RESISTANCE                          ((float)0.15)
+//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.000100)
 //#define MOTOR_NOPOLESPAIRS                               2
+
+//2808
+//#define MOTOR_PHASE_RESISTANCE                          ((float)0.6)
+//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.000242)
+//#define MOTOR_NOPOLESPAIRS                               7
+
+//ZSDN-390-2-1
+//#define MOTOR_PHASE_RESISTANCE                          ((float)0.0246)
+//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.00000641)
+//#define MOTOR_NOPOLESPAIRS                               2
+
 
 /*************** PWM and Control Timing Parameters ****************************/
 #define PWMFREQUENCY_HZ                                 (float)MOTOR_PWM_FREQ_HZ
 #define LOOPTIME_SEC                                    (float)(1/PWMFREQUENCY_HZ)
 
 /*************** Startup Parameters *******************************************/
-#define OPEN_LOOP_CURRENT                               4
+#define OPEN_LOOP_CURRENT                               1
 
 #define SPEED_LOOP_CYCLE                                10
 
-#define LOCK_TIME_SEC  		                            0.1
+#define LOCK_TIME_SEC  		                            1
 #define LOCK_COUNTER                                    (unsigned int)((float)LOCK_TIME_SEC/(float)LOOPTIME_SEC)
 
-#define OPENLOOPTIMEINSEC 	                            2
+#define OPENLOOPTIMEINSEC 	                            1
 #define OPEN_LOOP_END_SPEED_RPM                         500
 
 #define END_SPEED_RADS_MECH                             (float)(OPEN_LOOP_END_SPEED_RPM*RPM_TO_RADS)
@@ -92,7 +104,7 @@ extern "C"{
 #define END_SPEED_RADS_ELEC_COUNTER                     (float)(END_SPEED_RADS_ELEC * LOOPTIME_SEC)
 #define OPENLOOP_RAMPSPEED_INCREASERATE                 (float)(END_SPEED_RADS_ELEC_COUNTER/(OPENLOOPTIMEINSEC/LOOPTIME_SEC))
     
-#define CL_RAMP_RATE_RPM_SEC                             3000 // CLosed Loop Speed Ramp rate in Rev/min/Sec
+#define CL_RAMP_RATE_RPM_SEC                             500 // CLosed Loop Speed Ramp rate in Rev/min/Sec
 #define CL_RAMP_RATE_RPS_SEC                             ((float)CL_RAMP_RATE_RPM_SEC/60) // CLosed Loop  Speed Ramp rate in Rev/sec^2 
 #define CL_RAMP_RATE_RADS_PER_SEC2_MECH                  (float)(CL_RAMP_RATE_RPS_SEC*2*M_PI) // CLosed Loop  Speed Ramp Rate in Mechanical Radians/Sec^2
 #define CL_RAMP_RATE_RADS_PER_SEC2_ELEC                  (float)(CL_RAMP_RATE_RADS_PER_SEC2_MECH*MOTOR_NOPOLESPAIRS) // CLosed Loop  Speed Ramp rate in Electrical Radians/Sec^2
@@ -103,8 +115,8 @@ extern "C"{
 #define NOMINAL_SPEED_RAD_PER_SEC_ELEC                   (float)(((NOMINAL_SPEED_RPM/60)*2*M_PI)*MOTOR_NOPOLESPAIRS) // Value in RPM
 
 /*************** SMO Parameters ***********************************************/
-#define MA_SMCGAIN	        8
-#define MA_MAXLINEARSMC     0.1
+#define MA_SMCGAIN	        12
+#define MA_MAXLINEARSMC     0.3
 
 /*************** PID Parameters ***********************************************/
 
@@ -121,14 +133,14 @@ extern "C"{
 #define     QOUTMAX    (0.99999)
 
 //*** Velocity Control Loop Coefficients *****
-#define     WKP        (0.02)
-#define     WKI        (0.0000020)
-#define     WKC        (0.5)
-#define     WOUTMAX    (5)
+#define     WKP        (0.01)
+#define     WKI        (0.000001)
+#define     WKC        (0.999)
+#define     WOUTMAX    (10)
 
 
 //#define OPEN_LOOP_MODE
-//#define OPEN_LOOP_VF_VQ     0.3f
+//#define OPEN_LOOP_VF_VQ     0.2f
 //#define TORQUE_MODE
 
 #ifdef __cplusplus

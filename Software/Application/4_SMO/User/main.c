@@ -19,16 +19,19 @@
 #include "motor_hardware.h"
 #include "uart.h"
 #include "i2c.h"
+#include "encoder.h"
 #include "eeprom.h"
 #include "delay.h"
 #include "adc_simple.h"
 #include "lcd.h"
 #include "lcd_init.h"
 #include "can.h"
+#include "drv8323rs.h"
 #include "foc.h"
 #include "pmsm.h"
 #include "userparms.h"
 #include "task.h"
+#include "motor_app.h"
 
 /* DEFINES ------------------------------------------------------------------------------------------*/
 #define START_DELAY_SEC     (float)2
@@ -36,10 +39,14 @@
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
 uint8_t adc_calibration = 0;
-uint32_t ia_offset = 0,ib_offset = 0;
-uint16_t adc1_ia = 0,adc1_ib = 0;
+uint32_t ia_offset = 0,ib_offset = 0,ic_offset = 0,idc_offset = 0;
+uint16_t adc1_ia = 0,adc1_ib = 0,adc1_ic = 0,adc1_idc = 0;
 
 uint32_t start_delay_tick = 0;
+
+extern uint16_t adc_filter_buffer[ADC_FILTER_COUNT];
+extern uint16_t speed_rpm;
+extern uint16_t adc_filter_count;
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 
@@ -57,7 +64,12 @@ int main(void)
     systick_init();
     led_init();
     usart_init();
-    
+    adc1_init();
+    can_bus_init();
+    encoder_init();
+    LCD_Init();
+    LCD_Fill(0,0,LCD_W,LCD_H,WHITE);
+    DRV8323RS_init();
     task_init();
     
     motor_hardware_init();
@@ -83,63 +95,22 @@ void TIMER0_BRK_IRQHandler(void)
 
 void ADC0_1_IRQHandler(void)
 {
-    float temp1 = 0;
-    float temp2 = 0;
-    float temp3 = 0;
-    uint8_t uart_data[16] = {0};
-    
     /* clear the ADC flag */
     adc_interrupt_flag_clear(ADC0, ADC_INT_FLAG_EOIC);
-    
-    if(adc_calibration == 0)
-    {
-        static uint16_t cnt;
-        
-        cnt++;
-        adc1_ia = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_3);
-        adc1_ib = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_2);
-        ia_offset += adc1_ia;
-        ib_offset += adc1_ib;
-        if(cnt >= (1 << 12))
-        {
-            adc_calibration = 1;
-            ia_offset = ia_offset >> 12;
-            ib_offset = ib_offset >> 12;
-        }
-    }
-    else if(start_delay_tick < START_DELAY_TICK)
-    {
-        start_delay_tick++;
-    }
-    else
-    {
-        /* read ADC inserted group data register */
-        adc1_ia = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_3);
-        adc1_ib = adc_inserted_data_read(ADC0, ADC_INSERTED_CHANNEL_2);
+    motor_app_isr();
+}
 
-        temp1 = ((float)ia_offset - adc1_ia) * ADC_TO_CURRENT_COEF;
-        temp2 = ((float)ib_offset - adc1_ib) * ADC_TO_CURRENT_COEF;
-        
-        pmsm_foc_param.ia = temp1;
-        pmsm_foc_param.ib = temp2;
-//        pmsm_foc_param.ic = 0 - pmsm_foc_param.ia - pmsm_foc_param.ib;
-        
-        pmsm_foc_run();
-        
-        temp1 = (float)pmsm_foc_param.ia;
-        memcpy(&uart_data[0],&temp1,4);
-        temp2 = (float)pmsm_foc_param.angle;
-        memcpy(&uart_data[4],&temp2,4);
-        temp3 = (float)smc1.theta;
-        memcpy(&uart_data[8],&temp3,4);
-        uart_data[sizeof(uart_data)-2] = 0x80;
-        uart_data[sizeof(uart_data)-1] = 0x7f;
-        usart_send_data(uart_data,sizeof(uart_data));
-        
-        timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_2,pmsm_foc_param.pwma);
-        timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_1,pmsm_foc_param.pwmb);
-        timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_0,pmsm_foc_param.pwmc);
-    }
+/*!
+    \brief      this function handles CAN0 RX0 exception
+    \param[in]  none
+    \param[out] none
+    \retval     none
+*/
+void USBD_LP_CAN0_RX0_IRQHandler(void)
+{
+    can_receive_message_struct receive_message;
+    /* check the receive message */
+    can_message_receive(CAN0, CAN_FIFO0, &receive_message);
 }
 
 

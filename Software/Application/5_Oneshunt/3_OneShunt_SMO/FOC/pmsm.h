@@ -30,9 +30,12 @@ typedef struct{
 	/* Start up ramp in open loop */
 	float startup_ramp;
     
+    float max_phase_voltage;
+    
     float vel_input;
     float vel_ref;
     float vel_diff;
+    float actual_speed;
     
     float id_ref;
     float iq_ref;

@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER,GD32F30X_HD,ARM_MATH_CM4, __FPU_PRESENT=1, __FPU_USED =1,__TARGET_FPU_VFP</Define>
               <Undefine></Undefine>
-              <IncludePath>..\User;..\Libraries\CMSIS\GD\GD32F30x\Include;..\Libraries\CMSIS;..\Libraries\GD32F30x_standard_peripheral\Include;..\LCD;..\FOC;..\User\BSP</IncludePath>
+              <IncludePath>..\User;..\Libraries\CMSIS\GD\GD32F30x\Include;..\Libraries\CMSIS;..\Libraries\GD32F30x_standard_peripheral\Include;..\LCD;..\FOC;..\User\BSP;..\User\Task</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -461,6 +461,31 @@
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\User\BSP\uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\BSP\encoder.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv8323rs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\BSP\drv8323rs.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Task</GroupName>
+          <Files>
+            <File>
+              <FileName>motor_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\Task\motor_app.c</FilePath>
+            </File>
+            <File>
+              <FileName>task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\Task\task.c</FilePath>
             </File>
           </Files>
         </Group>

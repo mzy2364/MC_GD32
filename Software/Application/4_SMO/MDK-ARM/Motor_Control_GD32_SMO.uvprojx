@@ -418,11 +418,6 @@
               <FilePath>..\User\BSP\can.c</FilePath>
             </File>
             <File>
-              <FileName>dac.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\User\BSP\dac.c</FilePath>
-            </File>
-            <File>
               <FileName>delay.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\User\BSP\delay.c</FilePath>
@@ -462,6 +457,16 @@
               <FileType>1</FileType>
               <FilePath>..\User\BSP\uart.c</FilePath>
             </File>
+            <File>
+              <FileName>drv8323rs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\BSP\drv8323rs.c</FilePath>
+            </File>
+            <File>
+              <FileName>encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\BSP\encoder.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -471,6 +476,11 @@
               <FileName>task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\User\Task\task.c</FilePath>
+            </File>
+            <File>
+              <FileName>motor_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\Task\motor_app.c</FilePath>
             </File>
           </Files>
         </Group>

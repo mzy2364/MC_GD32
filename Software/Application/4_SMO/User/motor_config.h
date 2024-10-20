@@ -23,10 +23,10 @@ extern "C"{
 #define ADC_FULLSCALE_VOLT              (float)3.3
 #define ADC_FULL_BIT                    (1<<12)
 #define SHUNT_RES                       (float)0.005
-#define SHUNT_OPA_GAIN                  (float)8
+#define SHUNT_OPA_GAIN                  (float)10
     
-#define VDC_SERIES_RES                  (float)75000
-#define VDC_PARALLEL_RES                (float)3000
+#define VDC_SERIES_RES                  (float)100000
+#define VDC_PARALLEL_RES                (float)5100
     
 #define ADC_TO_CURRENT_COEF             (float)(ADC_FULLSCALE_VOLT/ADC_FULL_BIT/SHUNT_RES/SHUNT_OPA_GAIN)
 #define ADC_TO_VDC_COEF                 (float)((VDC_SERIES_RES+VDC_PARALLEL_RES)/VDC_PARALLEL_RES*ADC_FULLSCALE_VOLT/ADC_FULL_BIT)

@@ -34,10 +34,10 @@ static void hall_timer_config(void);
   */
 void motor_hardware_init(void)
 {
-    comp_protect_init();
     interrupt_init();
     pwm_gpio_init();
     pwm_timer_config();
+    motor_pwm_disable();
     hall_init();
     adc0_init();
 }
@@ -51,7 +51,7 @@ void interrupt_init(void)
 {
     nvic_irq_enable(TIMER0_BRK_IRQn, 0, 0);
     nvic_irq_enable(ADC0_1_IRQn, 0, 2);
-    nvic_irq_enable(TIMER2_IRQn, 1, 1);
+//    nvic_irq_enable(TIMER2_IRQn, 1, 1);
 }
 
 /**
@@ -63,10 +63,12 @@ void interrupt_init(void)
   */
 void motor_pwm_set_duty(uint16_t duty_u,uint16_t duty_v,uint16_t duty_w)
 {
-    timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_2,duty_u);
-    timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_1,duty_v);
-    timer_channel_output_pulse_value_config(TIMER0,TIMER_CH_0,duty_w);
+    timer_channel_output_pulse_value_config(MOTOR_PWM_TIMER,PWM_U_CHANNEL,duty_u);
+    timer_channel_output_pulse_value_config(MOTOR_PWM_TIMER,PWM_V_CHANNEL,duty_v);
+    timer_channel_output_pulse_value_config(MOTOR_PWM_TIMER,PWM_W_CHANNEL,duty_w);
 }
+
+
 
 /**
   * @brief adc config
@@ -142,6 +144,180 @@ uint8_t hall_get(void)
     return ret;
 }
 
+/**
+  * @brief set pwm pin to PWM mode
+  * @param None
+  * @retval None
+  */
+void motor_pwm_pin_enable(void)
+{
+    gpio_init(PWM_UH_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_UH_GPIO_PIN);
+    gpio_init(PWM_VH_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_VH_GPIO_PIN);
+    gpio_init(PWM_WH_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_WH_GPIO_PIN);
+
+    gpio_init(PWM_UL_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_UL_GPIO_PIN);
+    gpio_init(PWM_VL_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_VL_GPIO_PIN);
+    gpio_init(PWM_WL_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_WL_GPIO_PIN);
+}
+
+/**
+  * @brief set pwm pin to GPIO mode
+  * @param None
+  * @retval None
+  */
+void motor_pwm_pin_disable(void)
+{
+    gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,RESET);
+    gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,RESET);
+    gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,RESET);
+
+    gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,RESET);
+    gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,RESET);
+    gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,RESET);
+    
+    gpio_init(PWM_UH_GPIO_PORT,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,PWM_UH_GPIO_PIN);
+    gpio_init(PWM_VH_GPIO_PORT,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,PWM_VH_GPIO_PIN);
+    gpio_init(PWM_WH_GPIO_PORT,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,PWM_WH_GPIO_PIN);
+
+    gpio_init(PWM_UL_GPIO_PORT,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,PWM_UL_GPIO_PIN);
+    gpio_init(PWM_VL_GPIO_PORT,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,PWM_VL_GPIO_PIN);
+    gpio_init(PWM_WL_GPIO_PORT,GPIO_MODE_OUT_PP,GPIO_OSPEED_50MHZ,PWM_WL_GPIO_PIN);
+}
+
+/**
+  * @brief disable pwm output
+  * @param None
+  * @retval None
+  */
+void motor_pwm_disable(void)
+{
+    timer_channel_output_state_config(MOTOR_PWM_TIMER,PWM_U_CHANNEL,TIMER_CCX_DISABLE);
+    timer_channel_output_state_config(MOTOR_PWM_TIMER,PWM_V_CHANNEL,TIMER_CCX_DISABLE);
+    timer_channel_output_state_config(MOTOR_PWM_TIMER,PWM_W_CHANNEL,TIMER_CCX_DISABLE);
+    timer_channel_complementary_output_state_config(MOTOR_PWM_TIMER,PWM_U_CHANNEL,TIMER_CCXN_DISABLE);
+    timer_channel_complementary_output_state_config(MOTOR_PWM_TIMER,PWM_V_CHANNEL,TIMER_CCXN_DISABLE);
+    timer_channel_complementary_output_state_config(MOTOR_PWM_TIMER,PWM_W_CHANNEL,TIMER_CCXN_DISABLE);
+}
+
+/**
+  * @brief enable pwm output
+  * @param None
+  * @retval None
+  */
+void motor_pwm_enable(void)
+{
+    timer_channel_output_state_config(MOTOR_PWM_TIMER,PWM_U_CHANNEL,TIMER_CCX_ENABLE);
+    timer_channel_output_state_config(MOTOR_PWM_TIMER,PWM_V_CHANNEL,TIMER_CCX_ENABLE);
+    timer_channel_output_state_config(MOTOR_PWM_TIMER,PWM_W_CHANNEL,TIMER_CCX_ENABLE);
+    timer_channel_complementary_output_state_config(MOTOR_PWM_TIMER,PWM_U_CHANNEL,TIMER_CCXN_ENABLE);
+    timer_channel_complementary_output_state_config(MOTOR_PWM_TIMER,PWM_V_CHANNEL,TIMER_CCXN_ENABLE);
+    timer_channel_complementary_output_state_config(MOTOR_PWM_TIMER,PWM_W_CHANNEL,TIMER_CCXN_ENABLE);
+}
+
+/**
+  * @brief set pwm pin to GPIO mode
+  * @param None
+  * @retval None
+  */
+void motor_set_voltage_vector(int16_t vector)
+{
+    /* Overrides PWM based on vector number in the order of c-b-a */
+    switch(vector)
+    {
+        case 0:
+            /* c-b-a :: 0-0-0 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,RESET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,RESET);
+        break;
+        
+        case 1:
+            /* c-b-a :: 0-0-1 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,SET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,SET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,SET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,RESET);
+        break;
+        
+        case 2:
+            /* c-b-a :: 0-1-1 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,SET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,SET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,RESET);
+        break;
+        
+        case 3:
+            /* c-b-a :: 0-1-0 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,RESET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,SET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,SET);
+        break;
+        
+        case 4:
+            /* c-b-a :: 1-1-0 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,RESET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,SET);
+        break;
+        
+        case 5:
+            /* c-b-a :: 1-0-0 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,RESET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,SET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,SET);
+        break;
+        
+        case 6:
+             /* c-b-a :: 1-0-1 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,SET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,SET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,RESET);
+        break;
+        
+        case 7:
+            /* c-b-a :: 1-1-1 */
+            gpio_bit_write(PWM_UH_GPIO_PORT, PWM_UH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_VH_GPIO_PORT, PWM_VH_GPIO_PIN,SET);
+            gpio_bit_write(PWM_WH_GPIO_PORT, PWM_WH_GPIO_PIN,SET);
+
+            gpio_bit_write(PWM_UL_GPIO_PORT, PWM_UL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_VL_GPIO_PORT, PWM_VL_GPIO_PIN,RESET);
+            gpio_bit_write(PWM_WL_GPIO_PORT, PWM_WL_GPIO_PIN,RESET);
+        break;
+
+        default:
+            vector = 0;
+        break;
+    }
+}
+
 /* LOCAL FUNCTION -----------------------------------------------------------------------------------*/
 
 /**
@@ -156,17 +332,17 @@ static void pwm_gpio_init(void)
     rcu_periph_clock_enable(RCU_AF);
 
     /*configure PA8 PA9 PA10(TIMER0 CH0 CH1 CH2) as alternate function*/
-    gpio_init(GPIOA,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_8);
-    gpio_init(GPIOA,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_9);
-    gpio_init(GPIOA,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_10);
+    gpio_init(PWM_UH_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_UH_GPIO_PIN);
+    gpio_init(PWM_VH_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_VH_GPIO_PIN);
+    gpio_init(PWM_WH_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_WH_GPIO_PIN);
 
     /*configure PB13 PB14 PB15(TIMER0 CH0N CH1N CH2N) as alternate function*/
-    gpio_init(GPIOB,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_13);
-    gpio_init(GPIOB,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_14);
-    gpio_init(GPIOB,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_15);
+    gpio_init(PWM_UL_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_UL_GPIO_PIN);
+    gpio_init(PWM_VL_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_VL_GPIO_PIN);
+    gpio_init(PWM_WL_GPIO_PORT,GPIO_MODE_AF_PP,GPIO_OSPEED_50MHZ,PWM_WL_GPIO_PIN);
 
     /*configure PB12(TIMER0 BKIN) as alternate function*/
-    gpio_init(GPIOB,GPIO_MODE_IN_FLOATING,GPIO_OSPEED_50MHZ,GPIO_PIN_12);
+    gpio_init(PWM_BKIN_GPIO_PORT,GPIO_MODE_IN_FLOATING,GPIO_OSPEED_50MHZ,PWM_BKIN_GPIO_PIN);
 }
 
 /**
@@ -177,9 +353,15 @@ static void pwm_gpio_init(void)
 static void adc_gpio_init(void)
 {
     /* enable GPIO clock */
-    rcu_periph_clock_enable(RCU_GPIOA);
+    rcu_periph_clock_enable(IU_ADC_CLK);
+    rcu_periph_clock_enable(IV_ADC_CLK);
+    rcu_periph_clock_enable(IW_ADC_CLK);
+    rcu_periph_clock_enable(IDC_AVER_ADC_CLK);
     
-    gpio_init(GPIOA, GPIO_MODE_AIN, GPIO_OSPEED_MAX, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
+    gpio_init(IU_ADC_PORT, GPIO_MODE_AIN, GPIO_OSPEED_MAX, IU_ADC_PIN);
+    gpio_init(IV_ADC_PORT, GPIO_MODE_AIN, GPIO_OSPEED_MAX, IV_ADC_PIN);
+    gpio_init(IW_ADC_PORT, GPIO_MODE_AIN, GPIO_OSPEED_MAX, IW_ADC_PIN);
+    gpio_init(IDC_AVER_ADC_PORT, GPIO_MODE_AIN, GPIO_OSPEED_MAX, IDC_AVER_ADC_PIN);
 }
 
 /**
@@ -244,7 +426,7 @@ static void pwm_timer_config(void)
     timer_breakpara.runoffstate      = TIMER_ROS_STATE_ENABLE;
     timer_breakpara.ideloffstate     = TIMER_IOS_STATE_ENABLE ;
     timer_breakpara.deadtime         = 0xb8;        /* 1.2us */
-    timer_breakpara.breakpolarity    = TIMER_BREAK_POLARITY_HIGH;
+    timer_breakpara.breakpolarity    = TIMER_BREAK_POLARITY_LOW;
     timer_breakpara.outputautostate  = TIMER_OUTAUTO_ENABLE;
     timer_breakpara.protectmode      = TIMER_CCHP_PROT_OFF;
     timer_breakpara.breakstate       = TIMER_BREAK_ENABLE;
@@ -289,12 +471,11 @@ static void adc0_config(void)
     adc_data_alignment_config(ADC0, ADC_DATAALIGN_RIGHT);
 
     /* ADC channel length config */
-    adc_channel_length_config(ADC0, ADC_INSERTED_CHANNEL, 4);
+    adc_channel_length_config(ADC0, ADC_INSERTED_CHANNEL, 3);
     /* ADC inserted channel config */
-    adc_inserted_channel_config(ADC0, 0, ADC_CHANNEL_0, ADC_SAMPLETIME_1POINT5);
-    adc_inserted_channel_config(ADC0, 1, ADC_CHANNEL_1, ADC_SAMPLETIME_1POINT5);
-    adc_inserted_channel_config(ADC0, 2, ADC_CHANNEL_2, ADC_SAMPLETIME_1POINT5);
-    adc_inserted_channel_config(ADC0, 3, ADC_CHANNEL_3, ADC_SAMPLETIME_1POINT5);
+    adc_inserted_channel_config(ADC0, IU_INSERTED_CHANNEL, IU_ADC_CHANNEL, ADC_SAMPLETIME_1POINT5);
+    adc_inserted_channel_config(ADC0, IV_INSERTED_CHANNEL, IV_ADC_CHANNEL, ADC_SAMPLETIME_1POINT5);
+    adc_inserted_channel_config(ADC0, IW_INSERTED_CHANNEL, IW_ADC_CHANNEL, ADC_SAMPLETIME_1POINT5);
     /* ADC trigger config */
     adc_external_trigger_source_config(ADC0, ADC_INSERTED_CHANNEL, ADC0_1_EXTTRIG_INSERTED_T0_CH3); 
     /* ADC external trigger enable */

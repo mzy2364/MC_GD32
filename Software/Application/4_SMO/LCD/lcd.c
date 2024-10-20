@@ -229,6 +229,8 @@ void LCD_ShowIntNum(uint16_t x,uint16_t y,uint16_t num,uint8_t len,uint16_t fc,u
 	uint8_t t,temp;
 	uint8_t enshow=0;
 	uint8_t sizex=sizey/2;
+    uint8_t x_pos = x;
+    uint8_t empty_full = 0;
 	for(t=0;t<len;t++)
 	{
 		temp=(num/mypow(10,len-t-1))%10;
@@ -236,13 +238,20 @@ void LCD_ShowIntNum(uint16_t x,uint16_t y,uint16_t num,uint8_t len,uint16_t fc,u
 		{
 			if(temp==0)
 			{
-				LCD_ShowChar(x+t*sizex,y,' ',fc,bc,sizey,0);
+				//LCD_ShowChar(x+t*sizex,y,' ',fc,bc,sizey,0);
+                empty_full += 1;
 				continue;
 			}else enshow=1; 
 		 	 
 		}
-	 	LCD_ShowChar(x+t*sizex,y,temp+48,fc,bc,sizey,0);
+	 	LCD_ShowChar(x_pos,y,temp+48,fc,bc,sizey,0);
+        x_pos += sizex;
 	}
+    for(t=0;t<empty_full;t++)
+    {
+        LCD_ShowChar(x_pos,y,' ',fc,bc,sizey,0);
+        x_pos += sizex;
+    }
 } 
 
 
@@ -275,6 +284,54 @@ void LCD_ShowFloatNum1(uint16_t x,uint16_t y,float num,uint8_t len,uint16_t fc,u
 	}
 }
 
+/******************************************************************************
+      函数说明：显示带符号的一位小数变量
+      入口数据：x,y显示坐标
+                num 要显示小数变量
+                len 要显示的位数
+                fc 字的颜色
+                bc 字的背景色
+                sizey 字号
+      返回值：  无
+******************************************************************************/
+void LCD_ShowFloatNum2(uint16_t x,uint16_t y,float num,uint8_t len,uint16_t fc,uint16_t bc,uint8_t sizey)
+{         	
+	uint8_t t,temp,sizex;
+	uint16_t num1;
+    uint8_t x_pos = x;
+    
+	sizex=sizey/2;
+    if(num < 0)
+    {
+        num1 = -num*10;
+        LCD_ShowChar(x,y,'-',fc,bc,sizey,0);
+        x_pos += sizex;
+    }
+    else
+    {
+        num1 = num*10;
+    }
+	
+	for(t=0;t<(len);t++)
+	{
+		temp=(num1/mypow(10,len-t-1))%10;
+		if(t==(len-1))
+		{
+			LCD_ShowChar(x_pos,y,'.',fc,bc,sizey,0);
+            x_pos += sizex;
+			t++;
+			len+=1;
+            temp=(num1/mypow(10,len-t-1))%10;
+            LCD_ShowChar(x_pos,y,temp+48,fc,bc,sizey,0);
+            break;
+		}
+        if((t == (len-2)) || (temp != 0))
+        {
+            LCD_ShowChar(x_pos,y,temp+48,fc,bc,sizey,0);
+            x_pos += sizex;
+        }
+	}
+}
 
 /******************************************************************************
       函数说明：显示图片

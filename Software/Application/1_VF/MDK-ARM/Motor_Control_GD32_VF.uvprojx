@@ -462,6 +462,11 @@
               <FileType>1</FileType>
               <FilePath>..\User\BSP\uart.c</FilePath>
             </File>
+            <File>
+              <FileName>drv8323rs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\BSP\drv8323rs.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
