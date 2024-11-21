@@ -120,7 +120,7 @@ void ADC0_1_IRQHandler(void)
 
         temp1 = ((float)adc_ia - ia_offset) * ADC_TO_CURRENT_COEF;
         temp2 = ((float)adc_ib - ib_offset) * ADC_TO_CURRENT_COEF;
-        temp3 = ((float)adc_ib - ic_offset) * ADC_TO_CURRENT_COEF;
+        temp3 = ((float)adc_ic - ic_offset) * ADC_TO_CURRENT_COEF;
         
         pmsm_foc_param.ia = temp1;
         pmsm_foc_param.ib = temp2;
