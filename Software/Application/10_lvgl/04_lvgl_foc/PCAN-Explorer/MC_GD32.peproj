@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PCANExplorerProject Version="5.0" Name="MC_GD32">
+    <Connections AutoReset="0" IgnoreRTRLength="0" ProcessRTR="1">
+        <Connection Bus="1" Enabled="1" Protocol="0" SymbolsFileName="motor.dbc" BitRate="28" Connection="PCANLight_USB_16@pcan_usb" Name="Connection1"/>
+    </Connections>
+    <MessageFilters/>
+    <Files>
+        <File RelativePath="Panel1.ipf"/>
+        <File RelativePath="motor.dbc"/>
+    </Files>
+</PCANExplorerProject>

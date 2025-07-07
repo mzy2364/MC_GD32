@@ -37,8 +37,12 @@ can_trasnmit_message_struct transmit_message;
 
 uint8_t eeprom_read_buf[32] = {0};
 
+extern uint8_t hall_state;
+
 /* LOCAL FUNCTION -----------------------------------------------------------------------------------*/
 static void motor_can_transmit(void);
+static uint8_t motor_get_fault(void);
+static void motor_clear_fault(void);
 
 /* GLOBAL FUNCTION ----------------------------------------------------------------------------------*/
 
@@ -56,6 +60,12 @@ void motor_app_init(void)
     eeprom_load_parameter();
     
     motor1.state = INIT;
+    motor1.start = 1;    
+    motor1.rotor_lock_tick = 0;
+    motor1.rotor_lock_fault = 0;
+    motor1.hall_state_fault = 0;
+    motor1.motor_sensor = motor_sensor;
+
     motor_set_speed(motor_normal_spd);
     
     transmit_message.tx_sfid = 0x7ab;
@@ -111,17 +121,26 @@ void motor_start(void)
 {
     if(motor1.state == STOP)
     {
-        motor_pwm_enable();
-        pmsm_foc_init();
-        motor1.state = RUN;
+        if(motor_get_fault())
+        {
+            motor_forced_stop();
+        }
+        else
+        {
+            motor_pwm_enable();
+            pmsm_foc_init();
+            motor1.state = RUN;
+            motor1.start = 1;
+        }
     }
     else if(motor1.state == FAULT)
     {
         uint32_t drv8323_fault_status = 0;
+        motor_clear_fault();
         drv8323_fault_status = DRV8323RS_getFaults();
         DRV8323RS_clearFaults();
         drv8323_fault_status = DRV8323RS_getFaults();
-        if(drv8323_fault_status == 0)
+        if((drv8323_fault_status == 0) && (motor_get_fault() == 0))
         {
             led_off(LED_FAULT);
             motor1.state = STOP;
@@ -137,6 +156,8 @@ void motor_start(void)
   */
 void motor_stop(void)
 {
+    motor1.start = 0;
+    pmsm_mc_param.run_motor = 0;
     if(motor1.state == RUN)
     {
         motor_pwm_disable();
@@ -154,7 +175,9 @@ void motor_stop(void)
 void motor_forced_stop(void)
 {
     motor_pwm_pin_disable();
+    pmsm_mc_param.run_motor = 0;
     motor1.state = FAULT;
+    motor1.start = 0;
 }
 
 
@@ -181,6 +204,10 @@ void motor_app_task10ms(void)
     {
         motor1.speed_rpm = pmsm_mc_param.actual_speed * ((float)60 / ANGLE_2PI / MOTOR_NOPOLESPAIRS);
     }
+    else
+    {
+        motor1.speed_rpm = 0;
+    }
     
     encoder_code = encoder_get();
     key_scan();
@@ -201,7 +228,7 @@ void motor_app_task10ms(void)
     {
 		ui_event_send(KEY_EVENT_KEY0_LONG_PRE);
     }
-    
+    motor1.motor_sensor = motor_sensor;
     pmsm_mc_param.vel_input = (float)motor1.speed_input*RPM_TO_RADS*motor_pole;
     
     lv_tick_inc(10);
@@ -291,25 +318,69 @@ void motor_app_isr(void)
             {
                 motor1.start_delay_tick++;
             }
-            else
+            else if(1U == motor1.start)
             {
                 motor1.state = RUN;
                 motor_pwm_enable();
+            }
+            else
+            {
+                motor1.state = STOP;
             }
             break;
         case STOP:
             break;
         case RUN:
             {
+                motor1.rotor_lock_tick++;
+                if(motor1.rotor_lock_tick >= ROTOR_LOCK_CHECK_TICK)
+                {
+                    motor1.rotor_lock_fault = 1;
+                }
+                if(motor_get_fault())
+                {
+                    motor_forced_stop();
+                    break;
+                }
                 /* read ADC inserted group data register */
                 motor1.adc_ia = adc_inserted_data_read(ADC0, IU_INSERTED_CHANNEL);
                 motor1.adc_ib = adc_inserted_data_read(ADC0, IV_INSERTED_CHANNEL);
                 motor1.adc_ic = adc_inserted_data_read(ADC0, IW_INSERTED_CHANNEL);
                 
-                pmsm_foc_param.ia = ((float)motor1.adc_ia - motor1.ia_offset) * ADC_TO_CURRENT_COEF;
-                pmsm_foc_param.ib = ((float)motor1.adc_ib - motor1.ib_offset) * ADC_TO_CURRENT_COEF;
-                pmsm_foc_param.ic = ((float)motor1.adc_ic - motor1.ic_offset) * ADC_TO_CURRENT_COEF;
+                switch(pmsm_foc_param.sector)
+                {
+                    case 1:
+                    case 6:
+                        pmsm_foc_param.ib = ((float)motor1.adc_ib - motor1.ib_offset) * ADC_TO_CURRENT_COEF;
+                        pmsm_foc_param.ic = ((float)motor1.adc_ic - motor1.ic_offset) * ADC_TO_CURRENT_COEF;
+                        pmsm_foc_param.ia = 0 - pmsm_foc_param.ib - pmsm_foc_param.ic;
+                        break;
+                    case 2:
+                    case 3:
+                        pmsm_foc_param.ia = ((float)motor1.adc_ia - motor1.ia_offset) * ADC_TO_CURRENT_COEF;
+                        pmsm_foc_param.ic = ((float)motor1.adc_ic - motor1.ic_offset) * ADC_TO_CURRENT_COEF;
+                        pmsm_foc_param.ib = 0 - pmsm_foc_param.ia - pmsm_foc_param.ic;
+                        break;
+                    case 4:
+                    case 5:
+                        pmsm_foc_param.ia = ((float)motor1.adc_ia - motor1.ia_offset) * ADC_TO_CURRENT_COEF;
+                        pmsm_foc_param.ib = ((float)motor1.adc_ib - motor1.ib_offset) * ADC_TO_CURRENT_COEF;
+                        pmsm_foc_param.ic = 0 - pmsm_foc_param.ia - pmsm_foc_param.ib;
+                        break;
+                    default:
+                        break;
+                }
                 pmsm_mc_param.max_phase_voltage = motor1.vdc * ONE_BY_SQRT3;
+                
+                pmsm_mc_param.hall_theta = pmsm_mc_param.hall_theta + pmsm_mc_param.hall_theta_inc;
+                if(pmsm_mc_param.hall_theta < 0.0f)
+                {
+                    pmsm_mc_param.hall_theta += ANGLE_2PI;
+                }
+                else if(pmsm_mc_param.hall_theta > ANGLE_2PI)
+                {
+                    pmsm_mc_param.hall_theta -= ANGLE_2PI;
+                }
                 
                 pmsm_foc_run();
                 
@@ -342,6 +413,7 @@ void motor_app_isr(void)
   */
 static void motor_can_transmit(void)
 {
+    static uint8_t status1_counter = 0;
     uint8_t mosfet_temperature = 0;
     if(motor1.mosfet_temp < -40)
         mosfet_temperature = 0;
@@ -354,10 +426,47 @@ static void motor_can_transmit(void)
     transmit_message.tx_data[3] = pmsm_foc_param.iq * 10;
     transmit_message.tx_data[4] = motor1.speed_rpm & 0xff;
     transmit_message.tx_data[5] = motor1.speed_rpm >> 8;
-    transmit_message.tx_data[6] = 0;
-    transmit_message.tx_data[7] = 0;
+    transmit_message.tx_data[6] = motor1.motor_sensor & 0x0F;
+    transmit_message.tx_data[7] = motor1.state & 0x0F;
+    transmit_message.tx_data[7] |= status1_counter << 4;
     
+    status1_counter++;
+    if(status1_counter >= 0x0F)
+    {
+        status1_counter = 0;
+    }
     can_message_transmit(CAN0, &transmit_message);
+}
+
+/**
+  * @brief motor get fault
+  * @param None
+  * @retval 1-motor is fault   0-motor is no fault
+  */
+static uint8_t motor_get_fault(void)
+{
+    if(motor1.motor_sensor)
+    {
+        if(motor1.hall_state_fault == 1)
+        {
+            return 1;
+        }
+        if(motor1.rotor_lock_fault == 1)
+        {
+            return 1;
+        }
+    }
+}
+
+/**
+  * @brief motor clear fault
+  * @param None
+  * @retval None
+  */
+static void motor_clear_fault(void)
+{
+    motor1.hall_state_fault = 0;
+    motor1.rotor_lock_fault = 0;
 }
 
 /************************************************EOF************************************************/

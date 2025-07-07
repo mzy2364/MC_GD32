@@ -62,7 +62,7 @@ void interrupt_init(void)
 {
     nvic_irq_enable(TIMER0_BRK_IRQn, 0, 0);
     nvic_irq_enable(ADC0_1_IRQn, 0, 2);
-//    nvic_irq_enable(TIMER2_IRQn, 1, 1);
+    nvic_irq_enable(TIMER2_IRQn, 1, 1);
 }
 
 /**
@@ -563,8 +563,10 @@ static void hall_timer_config(void)
     timer_auto_reload_shadow_enable(TIMER2);
     /* clear channel 0 interrupt bit */
     timer_interrupt_flag_clear(TIMER2,TIMER_INT_FLAG_CH0);
+    timer_interrupt_flag_clear(TIMER2,TIMER_INT_FLAG_UP);
     /* channel 0 interrupt enable */
     timer_interrupt_enable(TIMER2,TIMER_INT_CH0);
+    timer_interrupt_enable(TIMER2,TIMER_INT_UP);
 
     /* TIMER2 counter enable */
     timer_enable(TIMER2);

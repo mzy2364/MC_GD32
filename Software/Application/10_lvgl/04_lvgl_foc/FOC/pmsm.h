@@ -31,6 +31,7 @@ typedef struct{
 	uint8_t openloop;           /* 0-closeloop  1-openloop */
 	uint8_t run_motor;          /* 0-stop   1-stop */
 	uint8_t change_mode;
+    uint8_t sensor;
 	
     uint16_t lock_counter;      /* 转子锁定时间 */
     uint16_t hold_counter;      /* 开环保持时间 */
@@ -60,6 +61,15 @@ typedef struct{
     uint32_t speed_loop_count;
     
 	float end_speed;
+    
+    /* SPEED PLL */
+    float hall_theta_inc;
+    float hall_theta;
+    float theta_pll;
+    float omega_pll;
+    float omega_pll_filter;
+    float pll_sum;
+    float delta_theta_pll;
     
     open_loop_state ol_state;
 	

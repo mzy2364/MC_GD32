@@ -38,7 +38,10 @@
 /* DEFINES ------------------------------------------------------------------------------------------*/
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
+uint8_t hall_state = 0;
+uint32_t hall_timer_counter = 0;
 
+float hall_theta_tab[6] = {0,PI*2/3,PI/3,PI*4/3,PI*5/3,PI};
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 
@@ -66,7 +69,7 @@ int main(void)
     task_init();
     
     motor_hardware_init();
-    pmsm_foc_param.pwm_period = (float)MOTOR_PWM_PERIOD * 0.95f;
+    pmsm_foc_param.pwm_period = MOTOR_PWM_PERIOD;
     pmsm_foc_init();
     
     while(1)
@@ -106,5 +109,50 @@ void USBD_LP_CAN0_RX0_IRQHandler(void)
     can_message_receive(CAN0, CAN_FIFO0, &receive_message);
 }
 
+/*!
+    \brief      this function handles TIMER2 interrupt request.
+    \param[in]  none
+    \param[out] none
+    \retval     none
+*/
+void TIMER2_IRQHandler(void)
+{
+    /* hall_speed = 2PI / (6 * delta_t) */
+    /* delta_t = hall_timer_counter / timer_clk */
+    if(SET == timer_interrupt_flag_get(TIMER2,TIMER_INT_FLAG_CH0))
+    {
+        /* clear channel 0 interrupt bit */
+        timer_interrupt_flag_clear(TIMER2,TIMER_INT_FLAG_CH0);
+        timer_interrupt_flag_clear(TIMER2,TIMER_INT_FLAG_UP);
+
+        hall_timer_counter = timer_channel_capture_value_register_read(TIMER2,TIMER_CH_0)+1;
+        pmsm_mc_param.hall_theta_inc = (PI/3)/((float)hall_timer_counter/HALL_TIMER_FREQ_HZ)/MOTOR_PWM_FREQ_HZ;
+        hall_state = hall_get();
+        if((hall_state > 0) && (hall_state <= 6))
+        {
+            motor1.rotor_lock_tick = 0;
+            pmsm_mc_param.hall_theta = hall_theta_tab[hall_state - 1] + PHASE_SHIFT_ANGLE;
+        }
+        else
+        {
+            motor1.hall_state_fault = 1;
+        }
+    }
+    else if(SET == timer_interrupt_flag_get(TIMER2,TIMER_INT_FLAG_UP))
+    {
+        timer_interrupt_flag_clear(TIMER2,TIMER_INT_FLAG_UP);
+
+        pmsm_mc_param.hall_theta_inc = 0;
+        hall_state = hall_get();
+        if((hall_state > 0) && (hall_state <= 6))
+        {
+            pmsm_mc_param.hall_theta = hall_theta_tab[hall_state - 1] + PHASE_SHIFT_ANGLE;
+        }
+        else
+        {
+            motor1.hall_state_fault = 1;
+        }
+    }
+}
 
 /***************************************** (END OF FILE) *********************************************/

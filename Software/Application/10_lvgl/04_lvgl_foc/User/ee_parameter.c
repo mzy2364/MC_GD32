@@ -42,6 +42,7 @@ uint8_t rotor_lock_time = LOCK_TIME_SEC * 10;           /* unit 0.1s */
 uint16_t openloop_ramp_time = OPENLOOPTIMEINSEC * 10;   /* unit 0.1s */
 uint16_t openloop_hold_time = OPENLOOP_HOLD_TIME_SEC *10;   /* unit 0.1s */
 uint16_t open_loop_speed = OPEN_LOOP_END_SPEED_RPM;     /* unit RPM */
+uint8_t motor_sensor = 0;                               /* 0-sensorless 1-hall */
 /*******************************************************************************
 * Local Variables definition
 *******************************************************************************/
@@ -57,23 +58,30 @@ static uint8_t eeprom_data[EEPROM_PARAMETER_LEN] = {0};
 *******************************************************************************/
 void eeprom_load_parameter(void)
 {
+    uint32_t mask = 0;
     eeprom_read(EEPROM_PARAMETER_ADDR, eeprom_data, EEPROM_PARAMETER_LEN);
+    memcpy(&mask,&eeprom_data[EEPROM_MASK_ADDR],EEPROM_MASK_LEN);
     
-    memcpy(&motor_r,&eeprom_data[MOTOR_R_ADDR],MOTOR_R_LEN);
-    memcpy(&motor_l,&eeprom_data[MOTOR_L_ADDR],MOTOR_L_LEN);
-    memcpy(&motor_bemf,&eeprom_data[MOTOR_BF_ADDR],MOTOR_BF_LEN);
-    memcpy(&motor_pole,&eeprom_data[MOTOR_PL_ADDR],MOTOR_PL_LEN);
-    memcpy(&motor_normal_spd,&eeprom_data[MOTOR_NML_SPD_ADDR],MOTOR_NML_SPD_LEN);
-    memcpy(&openloop_current,&eeprom_data[OL_AMP_ADDR],OL_AMP_LEN);
-    memcpy(&rotor_lock_time,&eeprom_data[ROTOR_LOCK_TIME_ADDR],ROTOR_LOCK_TIME_LEN);
-    memcpy(&openloop_ramp_time,&eeprom_data[OL_RAMP_TIME_ADDR],OL_RAMP_TIME_LEN);
-    memcpy(&openloop_hold_time,&eeprom_data[OL_HOLD_TIME_ADDR],OL_HOLD_TIME_LEN);
-    memcpy(&open_loop_speed,&eeprom_data[OL_SPEED_ADDR],OL_SPEED_LEN);
-}    
+    if(EEPROM_INIT_MASK == mask)
+    {
+        memcpy(&motor_r,&eeprom_data[MOTOR_R_ADDR],MOTOR_R_LEN);
+        memcpy(&motor_l,&eeprom_data[MOTOR_L_ADDR],MOTOR_L_LEN);
+        memcpy(&motor_bemf,&eeprom_data[MOTOR_BF_ADDR],MOTOR_BF_LEN);
+        memcpy(&motor_pole,&eeprom_data[MOTOR_PL_ADDR],MOTOR_PL_LEN);
+        memcpy(&motor_normal_spd,&eeprom_data[MOTOR_NML_SPD_ADDR],MOTOR_NML_SPD_LEN);
+        memcpy(&openloop_current,&eeprom_data[OL_AMP_ADDR],OL_AMP_LEN);
+        memcpy(&rotor_lock_time,&eeprom_data[ROTOR_LOCK_TIME_ADDR],ROTOR_LOCK_TIME_LEN);
+        memcpy(&openloop_ramp_time,&eeprom_data[OL_RAMP_TIME_ADDR],OL_RAMP_TIME_LEN);
+        memcpy(&openloop_hold_time,&eeprom_data[OL_HOLD_TIME_ADDR],OL_HOLD_TIME_LEN);
+        memcpy(&open_loop_speed,&eeprom_data[OL_SPEED_ADDR],OL_SPEED_LEN);
+        memcpy(&motor_sensor,&eeprom_data[MOTOR_SENSOR_ADDR],MOTOR_SENSOR_LEN);
+    }
+}
 
 
 void eeprom_save_parameter(void)
 {
+    uint32_t mask = EEPROM_INIT_MASK;
     memset(eeprom_data,0,sizeof(eeprom_data));
     
     memcpy(&eeprom_data[MOTOR_R_ADDR],&motor_r,MOTOR_R_LEN);
@@ -86,7 +94,9 @@ void eeprom_save_parameter(void)
     memcpy(&eeprom_data[OL_RAMP_TIME_ADDR],&openloop_ramp_time,OL_RAMP_TIME_LEN);
     memcpy(&eeprom_data[OL_HOLD_TIME_ADDR],&openloop_hold_time,OL_HOLD_TIME_LEN);
     memcpy(&eeprom_data[OL_SPEED_ADDR],&open_loop_speed,OL_SPEED_LEN);
+    memcpy(&eeprom_data[MOTOR_SENSOR_ADDR],&motor_sensor,MOTOR_SENSOR_LEN);
     
+    memcpy(&eeprom_data[EEPROM_MASK_ADDR],&mask,EEPROM_MASK_LEN);
     eeprom_write(EEPROM_PARAMETER_ADDR, eeprom_data, EEPROM_PARAMETER_LEN);
 }
 

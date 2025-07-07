@@ -34,6 +34,7 @@ static void pmsm_foc_init_control_parameters(void);
 static void calculate_park_angle(void);
 static void pid_control(void);
 static void mcApp_InitEstimParm(void);
+static void hall_speed_pll(float angle);
 
 /**
   * @brief 
@@ -63,6 +64,7 @@ void pmsm_foc_init(void)
     pmsm_mc_param.end_speed_rads_elec_counter = (float)open_loop_speed*RPM_TO_RADS*motor_pole*LOOPTIME_SEC;
     pmsm_mc_param.openloop_rampspeed_inc = pmsm_mc_param.end_speed_rads_elec_counter/((float)openloop_ramp_time/10/LOOPTIME_SEC);
     pmsm_mc_param.end_speed = (float)open_loop_speed*RPM_TO_RADS*motor_pole;
+    pmsm_mc_param.sensor = motor_sensor;
     
     mcApp_InitEstimParm();
 }
@@ -80,15 +82,25 @@ void pmsm_foc_run(void)
         clark(&pmsm_foc_param);
         park(&pmsm_foc_param);
         
-        mcApp_EstimParam.qIalpha = pmsm_foc_param.ialpha;
-        mcApp_EstimParam.qIbeta = pmsm_foc_param.ibeta;
-        mcApp_EstimParam.qValpha = pmsm_foc_param.valpha;
-        mcApp_EstimParam.qVbeta = pmsm_foc_param.vbeta;
-        mcApp_EstimParam.qMaxPhaseVoltage = pmsm_mc_param.max_phase_voltage;
-        mcLib_PLLEstimator(&mcApp_EstimParam);
-        pmsm_mc_param.actual_speed = mcApp_EstimParam.qVelEstim;
-        
-        calculate_park_angle();
+        if(pmsm_mc_param.sensor == 0)
+        {
+            mcApp_EstimParam.qIalpha = pmsm_foc_param.ialpha;
+            mcApp_EstimParam.qIbeta = pmsm_foc_param.ibeta;
+            mcApp_EstimParam.qValpha = pmsm_foc_param.valpha;
+            mcApp_EstimParam.qVbeta = pmsm_foc_param.vbeta;
+            mcApp_EstimParam.qMaxPhaseVoltage = pmsm_mc_param.max_phase_voltage;
+            mcLib_PLLEstimator(&mcApp_EstimParam);
+            pmsm_mc_param.actual_speed = mcApp_EstimParam.qVelEstim;
+            
+            calculate_park_angle();
+        }
+        else
+        {
+            hall_speed_pll(pmsm_mc_param.hall_theta);
+            pmsm_foc_param.angle = pmsm_mc_param.theta_pll;
+            pmsm_mc_param.actual_speed = pmsm_mc_param.omega_pll_filter;
+            pmsm_mc_param.openloop = 0;
+        }
         
         pid_control();
         
@@ -296,7 +308,7 @@ static void pid_control(void)
         {
             pmsm_mc_param.speed_loop_count = 0;
             // PI control for SPEED
-            pmsm_foc_param.pi_w.meas = mcApp_EstimParam.qVelEstim;
+            pmsm_foc_param.pi_w.meas = pmsm_mc_param.actual_speed;
             pmsm_foc_param.pi_w.ref  = pmsm_mc_param.vel_ref;
             calc_pi(&pmsm_foc_param.pi_w);
             pmsm_mc_param.iq_ref = pmsm_foc_param.pi_w.out;
@@ -344,6 +356,46 @@ static void mcApp_InitEstimParm(void)
 
     mcApp_EstimParam.qDeltaT = LOOPTIME_SEC;
     mcApp_EstimParam.RhoOffset = (45 * (M_PI/180));
+}
+
+static void hall_speed_pll(float angle)
+{
+    // 1. 定义时间相关参数（需确保PWM_FREQ单位正确）
+    #define PWM_PERIOD_SEC      (1.0f / MOTOR_PWM_FREQ_HZ)  // PWM周期（秒）
+    // 2. 定义PLL参数（浮点数，显式标注单位）
+    #define SpeedPllBandWidth   250.0f      // 环路带宽（rad/s）
+    #define SpeedPllKp          (2.0f * SpeedPllBandWidth)                // Kp = 2*Wn
+    #define SpeedPllKi          (SpeedPllBandWidth * SpeedPllBandWidth * PWM_PERIOD_SEC)  // Ki = Wn^2 * Ts
+    // #define OmegaToTheta        (PWM_PERIOD_SEC * 16384.0f * 32768.0f / (2.0f * PI))       // 角速度→角度转换因子
+	#define OmegaToTheta  (PWM_PERIOD_SEC)  // 直接使用PWM周期作为积分系数
+    // 3. 霍尔信号积分（预测角度）
+    //stcHallAngle.hallAngle += stcHallAngle.hallspeed;
+    // 4. 生成实际角度的正弦/余弦信号
+	float sin = arm_sin_f32(angle);
+	float cos = arm_cos_f32(angle);
+	float sin_pll = arm_sin_f32(pmsm_mc_param.theta_pll);
+	float cos_pll = arm_cos_f32(pmsm_mc_param.theta_pll);
+    // 6. 算相位误差（浮点数运算）
+    pmsm_mc_param.delta_theta_pll = sin * cos_pll - cos * sin_pll;
+    // 7. 积分相位误差（PI控制器的积分项）
+    pmsm_mc_param.pll_sum += pmsm_mc_param.delta_theta_pll;
+    // 8. PI控制器计算角速度
+    pmsm_mc_param.omega_pll = 
+        SpeedPllKp * pmsm_mc_param.delta_theta_pll + 
+        SpeedPllKi * pmsm_mc_param.pll_sum;
+    // 9. 更新PLL角度（浮点数积分）
+    pmsm_mc_param.theta_pll += pmsm_mc_param.omega_pll * OmegaToTheta;
+    // 10. 角度归一化（防止溢出，可选）
+    if (pmsm_mc_param.theta_pll > ANGLE_2PI) 
+    {
+        pmsm_mc_param.theta_pll -= ANGLE_2PI;
+    } 
+    else if (pmsm_mc_param.theta_pll < 0) 
+    {
+        pmsm_mc_param.theta_pll += ANGLE_2PI;
+    }
+    // 11. 低通滤波输出角速度（一阶滤波，时间常数≈4个PWM周期）
+    pmsm_mc_param.omega_pll_filter += 0.005f * (pmsm_mc_param.omega_pll - pmsm_mc_param.omega_pll_filter);
 }
 
 /***************************************** (END OF FILE) *********************************************/

@@ -19,6 +19,8 @@ extern "C"{
 #include "eeprom.h"
 
 /* DEFINES ------------------------------------------------------------------------------------------*/
+#define EEPROM_INIT_MASK        0xAA551248
+
 #define EEPROM_PARAMETER_ADDR   0
 #define EEPROM_PARAMETER_LEN    64
 
@@ -42,6 +44,11 @@ extern "C"{
 #define OL_HOLD_TIME_LEN        2
 #define OL_SPEED_ADDR           15
 #define OL_SPEED_LEN            2
+#define MOTOR_SENSOR_ADDR       17
+#define MOTOR_SENSOR_LEN        1
+
+#define EEPROM_MASK_ADDR        60
+#define EEPROM_MASK_LEN         4
 
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
@@ -55,6 +62,7 @@ extern uint8_t rotor_lock_time;           /* unit 0.1s */
 extern uint16_t openloop_ramp_time;   /* unit 0.1s */
 extern uint16_t openloop_hold_time;   /* unit 0.1s */
 extern uint16_t open_loop_speed;     /* unit RPM */
+extern uint8_t motor_sensor;
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 void eeprom_load_parameter(void);

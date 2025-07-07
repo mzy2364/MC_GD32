@@ -22,6 +22,11 @@ extern "C"{
 /* DEFINES ------------------------------------------------------------------------------------------*/
 #define START_DELAY_SEC     (float)2
 #define START_DELAY_TICK    (uint32_t)((float)START_DELAY_SEC/(1/(float)MOTOR_PWM_FREQ_HZ))
+    
+#define ROTOR_LOCK_CHECK_SEC     (float)2
+#define ROTOR_LOCK_CHECK_TICK    (uint32_t)((float)ROTOR_LOCK_CHECK_SEC/(1/(float)MOTOR_PWM_FREQ_HZ))
+
+#define PHASE_SHIFT_ANGLE (float)       (45.0f/180.0f*ANGLE_2PI)
 
 #define ADC_CAL_COUNT       1024
 
@@ -44,6 +49,7 @@ typedef struct{
     uint32_t adc_cal_cnt;
     
     uint32_t start_delay_tick;
+    uint8_t start;
     
     uint16_t ntc_adc;
     uint16_t vdc_adc;
@@ -55,11 +61,16 @@ typedef struct{
     uint16_t speed_rpm;
     uint16_t speed_input;
     
+    uint8_t motor_sensor;
+    uint32_t rotor_lock_tick;
+    uint8_t rotor_lock_fault;
+    uint8_t hall_state_fault;
+    
     motor_state_t state;
 }motor_control_t;
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
-
+extern motor_control_t motor1;
 
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 void motor_app_init(void);

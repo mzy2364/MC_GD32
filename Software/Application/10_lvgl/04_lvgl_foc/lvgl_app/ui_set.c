@@ -15,7 +15,7 @@
 /*******************************************************************************
 * Defines
 *******************************************************************************/
-#define SET_ITEM_NUM    10
+#define SET_ITEM_NUM    11
 /*******************************************************************************
 * Macros
 *******************************************************************************/
@@ -45,6 +45,7 @@ extern uint8_t rotor_lock_time;
 extern uint16_t openloop_ramp_time;
 extern uint16_t openloop_hold_time;
 extern uint16_t open_loop_speed;
+extern uint8_t motor_sensor;
 
 extern lv_font_t gbk_puhui16;
 
@@ -61,6 +62,7 @@ static lv_obj_t *label_rotor_lock_time;
 static lv_obj_t *label_openloop_ramp_time;
 static lv_obj_t *label_openloop_hold_time;
 static lv_obj_t *label_open_loop_speed;
+static lv_obj_t *label_motor_sensor;
 
 static lv_obj_t *label_flash;
 
@@ -224,6 +226,13 @@ lv_obj_t *ui_set_create(lv_obj_t *parent)
     lv_label_set_text(label_open_loop_speed," ");
     lv_obj_align(label_open_loop_speed, list_btn, LV_ALIGN_IN_RIGHT_MID, -12, 0);
 
+    list_btn = lv_list_add_btn(list, NULL, "SENSOR");
+    lv_btn_set_layout(list_btn, LV_LAYOUT_OFF);
+    label_motor_sensor = lv_label_create(list_btn,NULL);
+    lv_label_set_style(label_motor_sensor,LV_LABEL_STYLE_MAIN,&style_list_btn_label);
+    lv_label_set_text(label_motor_sensor," ");
+    lv_obj_align(label_motor_sensor, list_btn, LV_ALIGN_IN_RIGHT_MID, -12, 0);
+
     lv_list_set_btn_selected(list, lv_list_get_next_btn(list, NULL));
     
     lv_task_t * task = lv_task_create(my_task_cb, 300, LV_TASK_PRIO_MID, NULL);
@@ -238,6 +247,7 @@ lv_obj_t *ui_set_create(lv_obj_t *parent)
     label_tab[7] = label_openloop_ramp_time;
     label_tab[8] = label_openloop_hold_time;
     label_tab[9] = label_open_loop_speed;
+    label_tab[10] = label_motor_sensor;
     
     return list;
 }
@@ -282,6 +292,9 @@ static uint32_t parameter_get_value(uint8_t index)
         case 9:
             return open_loop_speed;
             break;
+        case 10:
+            return motor_sensor;
+            break;
         default:
             return 0;
             break;
@@ -321,6 +334,11 @@ static void parameter_set_value(uint8_t index,uint32_t value)
             break;
         case 9:
             open_loop_speed = value;
+            break;
+        case 10:
+            motor_sensor = value;
+            if(motor_sensor > 1)
+                motor_sensor = 1;
             break;
         default:
             break;

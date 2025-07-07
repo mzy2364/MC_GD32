@@ -59,18 +59,18 @@ extern "C"{
 
 
 //60V DC
-#define MOTOR_PHASE_RESISTANCE                          ((float)0.6)  //600mR
-#define MOTOR_PHASE_INDUCTANCE                          ((float)0.000242) //242uH
-#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
-#define MOTOR_BACK_EMF_Vpeak                            (float)1.24   //1240mV
-#define MOTOR_NOPOLESPAIRS                               2
+//#define MOTOR_PHASE_RESISTANCE                          ((float)0.6)  //600mR
+//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.000242) //242uH
+//#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
+//#define MOTOR_BACK_EMF_Vpeak                            (float)1.24   //1240mV
+//#define MOTOR_NOPOLESPAIRS                               2
 
 //105V DC
-//#define MOTOR_PHASE_RESISTANCE                          ((float)6.97)
-//#define MOTOR_PHASE_INDUCTANCE                          ((float)0.00535)
-//#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
-//#define MOTOR_BACK_EMF_Vpeak                            (float)12.25
-//#define MOTOR_NOPOLESPAIRS                               2
+#define MOTOR_PHASE_RESISTANCE                          ((float)6.97)
+#define MOTOR_PHASE_INDUCTANCE                          ((float)0.00535)
+#define MOTOR_PHASE_INDUCTANCE_DIV_2_PI                 ((float)(MOTOR_PHASE_INDUCTANCE/(2*M_PI)))	
+#define MOTOR_BACK_EMF_Vpeak                            (float)12.25
+#define MOTOR_NOPOLESPAIRS                               2
 
 //25.2V 500W
 //#define MOTOR_PHASE_RESISTANCE                          ((float)0.15)
