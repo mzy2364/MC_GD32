@@ -119,11 +119,11 @@ void TIMER3_IRQHandler(void)
         timer_counter_value_config(TIMER3,0);
         if(cnt > 0)
         {
-            encoder_code = ENCODER_INC;
+            encoder_code = ENCODER_DEC;
         }
         else
         {
-            encoder_code = ENCODER_DEC;
+            encoder_code = ENCODER_INC;
         }
     }
 }
