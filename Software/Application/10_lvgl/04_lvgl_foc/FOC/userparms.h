@@ -93,7 +93,7 @@ extern "C"{
 #define LOOPTIME_SEC                                    (float)(1/PWMFREQUENCY_HZ)
 
 /*************** Startup Parameters *******************************************/
-#define OPEN_LOOP_CURRENT                               10
+#define OPEN_LOOP_CURRENT                               1
 
 #define SPEED_LOOP_CYCLE                                10
 
@@ -101,7 +101,7 @@ extern "C"{
 #define LOCK_COUNTER                                    (unsigned int)((float)LOCK_TIME_SEC/(float)LOOPTIME_SEC)
 
 #define OPENLOOPTIMEINSEC 	                            1
-#define OPEN_LOOP_END_SPEED_RPM                         1000
+#define OPEN_LOOP_END_SPEED_RPM                         500
 
 #define OPENLOOP_HOLD_TIME_SEC                          0.5
 
@@ -117,7 +117,7 @@ extern "C"{
 #define CL_SPEED_RAMP_RATE_DELTA                         (float)(CL_RAMP_RATE_RADS_PER_SEC2_ELEC*LOOPTIME_SEC) // CLosed Loop  Speed Ramp Rate in Electrical Radians/sec^2 in each control loop time
 #define CL_SPEED_HYSTERESIS                              (float)(5*CL_SPEED_RAMP_RATE_DELTA)
     
-#define NOMINAL_SPEED_RPM                                (float)20000 // Value in RPM
+#define NOMINAL_SPEED_RPM                                (float)3000 // Value in RPM
 //#define NOMINAL_SPEED_RAD_PER_SEC_ELEC                   (float)(((NOMINAL_SPEED_RPM/60)*2*M_PI)*MOTOR_NOPOLESPAIRS) // Value in RPM
 
 /*************** PLL Parameters ***********************************************/

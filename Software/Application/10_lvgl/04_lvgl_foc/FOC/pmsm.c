@@ -346,7 +346,7 @@ static void mcApp_InitEstimParm(void)
 	mcApp_EstimParam.qRs = r;
 	mcApp_EstimParam.qKFi = (bemf/1.732f)/1000 * 60/ANGLE_2PI/motor_pole;
 	mcApp_EstimParam.qInvKFi_Below_Nominal_Speed = (float)(1/mcApp_EstimParam.qKFi);
-    mcApp_EstimParam.qLs_DIV_2_PI = motor_l/(2*M_PI);
+    mcApp_EstimParam.qLs_DIV_2_PI = l/(2*M_PI);
     mcApp_EstimParam.qNominal_Speed = speed;
     mcApp_EstimParam.qDecimate_Nominal_Speed = mcApp_EstimParam.qNominal_Speed / 10.0f;
    	mcApp_EstimParam.qOmegaMr = 0;

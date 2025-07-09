@@ -42,7 +42,7 @@ uint8_t rotor_lock_time = LOCK_TIME_SEC * 10;           /* unit 0.1s */
 uint16_t openloop_ramp_time = OPENLOOPTIMEINSEC * 10;   /* unit 0.1s */
 uint16_t openloop_hold_time = OPENLOOP_HOLD_TIME_SEC *10;   /* unit 0.1s */
 uint16_t open_loop_speed = OPEN_LOOP_END_SPEED_RPM;     /* unit RPM */
-uint8_t motor_sensor = 0;                               /* 0-sensorless 1-hall */
+uint8_t motor_sensor = 1;                               /* 0-sensorless 1-hall */
 /*******************************************************************************
 * Local Variables definition
 *******************************************************************************/
