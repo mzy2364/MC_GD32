@@ -243,7 +243,7 @@ void motor_app_task10ms(void)
   */
 void motor_app_task100ms(void)
 {
-    
+    ui_monitor_update();
 }
 
 /**
@@ -253,7 +253,7 @@ void motor_app_task100ms(void)
   */
 void motor_app_task500ms(void)
 {
-    ui_monitor_update();
+
 }
 
 /**

@@ -33,11 +33,11 @@ typedef struct{
 	uint8_t change_mode;
     uint8_t sensor;
 	
-    uint16_t lock_counter;      /* 转子锁定时间 */
-    uint16_t hold_counter;      /* 开环保持时间 */
+    uint32_t lock_counter;      /* 转子锁定时间 */
+    uint32_t hold_counter;      /* 开环保持时间 */
 	/* Rotor positioning time */
-	uint16_t startup_lock_count;    /* 转子锁定计数器 */
-	uint16_t openloop_hold_count;   /* 开环保持计数器 */
+	uint32_t startup_lock_count;    /* 转子锁定计数器 */
+	uint32_t openloop_hold_count;   /* 开环保持计数器 */
 	/* Start up ramp in open loop */
 	float startup_ramp;         /* 开环速度斜坡 */
     

@@ -65,6 +65,7 @@ typedef struct{
     uint32_t rotor_lock_tick;
     uint8_t rotor_lock_fault;
     uint8_t hall_state_fault;
+    uint8_t hall_state;
     
     motor_state_t state;
 }motor_control_t;

@@ -44,6 +44,7 @@ lv_obj_t *label_const_temp;
 lv_obj_t *lv_preload;
 lv_obj_t *lv_led;
 lv_obj_t *lv_bar_ref_spd;
+lv_obj_t *lv_hall_state;
 
 lv_obj_t *label_status;
 lv_obj_t *label_speed;
@@ -51,6 +52,8 @@ lv_obj_t *label_current;
 lv_obj_t *label_voltage;
 lv_obj_t *label_temp;
 lv_obj_t *label_ref_spd;
+
+static uint8_t led_toggle_tick = 0;
 
 /*******************************************************************************
 * Local Functions prototypes
@@ -188,6 +191,11 @@ lv_obj_t *ui_monitor_create(lv_obj_t *parent)
     lv_obj_set_size(lv_led, 22, 22);
     lv_obj_align(lv_led, NULL, LV_ALIGN_IN_TOP_RIGHT, -2, 2);
     
+    lv_hall_state = lv_label_create(cont, NULL);
+    lv_obj_set_style(lv_hall_state, &style_label);
+    lv_label_set_text(lv_hall_state,"0");
+    lv_obj_align(lv_hall_state, NULL, LV_ALIGN_IN_TOP_RIGHT, -8, 24);
+    
     lv_bar_ref_spd = lv_bar_create(cont, NULL);
     lv_bar_set_style(lv_bar_ref_spd,LV_BAR_STYLE_BG,&style_bar_bg);
     lv_bar_set_style(lv_bar_ref_spd,LV_BAR_STYLE_INDIC,&style_bar_inc);
@@ -211,6 +219,7 @@ lv_obj_t *ui_monitor_create(lv_obj_t *parent)
   */
 void ui_monitor_update(void)
 {
+    char text_hall_state = '0';
     motor_control_t motor_info;
     motor_get_data(&motor_info);
     
@@ -233,12 +242,18 @@ void ui_monitor_update(void)
         lv_label_set_text(label_speed, " RPM");
         lv_label_set_text(label_current, " A");
     }
-//        uint16_t speed_rpm;
-//    uint16_t speed_input;
+    text_hall_state = motor_info.hall_state + 0x30;
+    lv_label_set_text(lv_hall_state,&text_hall_state);
+
     lv_bar_set_value(lv_bar_ref_spd,((motor_info.speed_input * 100) / motor_normal_spd),LV_ANIM_OFF);
     ui_label_show_int_num(label_ref_spd,motor_info.speed_input,5," RPM",4);
     
-    lv_led_toggle(lv_led);
+    led_toggle_tick++;
+    if(led_toggle_tick >= 5)
+    {
+        led_toggle_tick = 0;
+        lv_led_toggle(lv_led);
+    }
     
     ui_label_show_float_num(label_voltage,motor_info.vdc,2," V",2);
     ui_label_show_float_num(label_temp,motor_info.mosfet_temp,3," degC",5);

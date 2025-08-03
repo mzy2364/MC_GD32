@@ -38,7 +38,6 @@
 /* DEFINES ------------------------------------------------------------------------------------------*/
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/
-uint8_t hall_state = 0;
 uint32_t hall_timer_counter = 0;
 
 float hall_theta_tab[6] = {0,PI*2/3,PI/3,PI*4/3,PI*5/3,PI};
@@ -127,11 +126,11 @@ void TIMER2_IRQHandler(void)
 
         hall_timer_counter = timer_channel_capture_value_register_read(TIMER2,TIMER_CH_0)+1;
         pmsm_mc_param.hall_theta_inc = (PI/3)/((float)hall_timer_counter/HALL_TIMER_FREQ_HZ)/MOTOR_PWM_FREQ_HZ;
-        hall_state = hall_get();
-        if((hall_state > 0) && (hall_state <= 6))
+        motor1.hall_state = hall_get();
+        if((motor1.hall_state > 0) && (motor1.hall_state <= 6))
         {
             motor1.rotor_lock_tick = 0;
-            pmsm_mc_param.hall_theta = hall_theta_tab[hall_state - 1] + PHASE_SHIFT_ANGLE;
+            pmsm_mc_param.hall_theta = hall_theta_tab[motor1.hall_state - 1] + PHASE_SHIFT_ANGLE;
         }
         else
         {
@@ -143,10 +142,10 @@ void TIMER2_IRQHandler(void)
         timer_interrupt_flag_clear(TIMER2,TIMER_INT_FLAG_UP);
 
         pmsm_mc_param.hall_theta_inc = 0;
-        hall_state = hall_get();
-        if((hall_state > 0) && (hall_state <= 6))
+        motor1.hall_state = hall_get();
+        if((motor1.hall_state > 0) && (motor1.hall_state <= 6))
         {
-            pmsm_mc_param.hall_theta = hall_theta_tab[hall_state - 1] + PHASE_SHIFT_ANGLE;
+            pmsm_mc_param.hall_theta = hall_theta_tab[motor1.hall_state - 1] + PHASE_SHIFT_ANGLE;
         }
         else
         {
