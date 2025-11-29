@@ -59,8 +59,7 @@ uint8_t mt6701_read_angle0(uint16_t *angle)
     crc_buf[2] = mt6701_data >> 6;
     
     crc_calc = crc6(crc_buf, 3);
-    //if(crc_calc == (mt6701_data & 0x3f))
-    if(1)
+    if(crc_calc == (mt6701_data & 0x3f))
     {
         *angle = mt6701_data >> 10;
         return 1;
@@ -91,8 +90,7 @@ uint8_t mt6701_read_angle1(float *angle)
     crc_buf[2] = mt6701_data >> 6;
     
     crc_calc = crc6(crc_buf, 3);
-    //if(crc_calc == (mt6701_data & 0x3f))
-    if(1)
+    if(crc_calc == (mt6701_data & 0x3f))
     {
         mt6701_data >>= 10;
         angle_f = (float)mt6701_data * 360 / 16384.0;
@@ -104,7 +102,7 @@ uint8_t mt6701_read_angle1(float *angle)
 
 /**
   * @brief 读取 mt6701 角度
-  * @param angle:返回0-360度角度数据
+  * @param angle:返回0-2PI角度数据
   * @retval 1-读取成功   0-CRC错误
   * @not SPI_PSC_4 4.15us
   */
@@ -125,8 +123,7 @@ uint8_t mt6701_read_angle2(float *angle)
     crc_buf[2] = mt6701_data >> 6;
     
     crc_calc = crc6(crc_buf, 3);
-    //if(crc_calc == (mt6701_data & 0x3f))
-    if(1)
+    if(crc_calc == (mt6701_data & 0x3f))
     {
         mt6701_data >>= 10;
         angle_f = (float)mt6701_data * 6.283185 / 16384.0;

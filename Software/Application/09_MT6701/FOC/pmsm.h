@@ -38,6 +38,7 @@ typedef struct{
     float iq_ref;
     
     float hall_speed;
+    float actual_speed;
     
     uint32_t speed_loop_count;
     
@@ -52,7 +53,7 @@ extern pmsm_mc_t pmsm_mc_param;
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 void pmsm_foc_init(void);
 void pmsm_foc_run(void);
-
+void utils_norm_angle_rad(float *angle);
 
 #ifdef __cplusplus
 extern "C"{

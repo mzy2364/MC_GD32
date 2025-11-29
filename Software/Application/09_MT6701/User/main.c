@@ -25,8 +25,11 @@
 #include "lcd.h"
 #include "lcd_init.h"
 #include "can.h"
+#include "encoder.h"
 #include "drv8323rs.h"
 #include "mt6701.h"
+#include "task.h"
+#include "motor_app.h"
 #include "foc.h"
 #include "pmsm.h"
 #include "userparms.h"
@@ -55,6 +58,8 @@ uint16_t speed_filter_count = 0;
 float speed_buf[10] = {0};
 float speed_sum = 0;
 
+float sensor_angle_offset = 0;
+
 /* FUNCTION -----------------------------------------------------------------------------------------*/
 
 
@@ -71,26 +76,21 @@ int main(void)
     systick_init();
     led_init();
     usart_init();
+    adc1_init();
+    can_bus_init();
+    encoder_init();
     DRV8323RS_init();
     mt6701_init();
-    
-    LCD_Init();//LCD³õÊ¼»¯
-	LCD_Fill(0,0,LCD_W,LCD_H,WHITE);
-    LCD_ShowString(0,0,(const uint8_t *)"MC_GD32",BLACK,WHITE,32,0);
-    LCD_ShowString(0,32,(const uint8_t *)"GD32F303RCT6",BLACK,WHITE,32,0);
-    LCD_ShowString(0,64,(const uint8_t *)"ARM Cortex-M4F",BLACK,WHITE,32,0);
-    
+
+    task_init();
+
     motor_hardware_init();
     pmsm_foc_param.pwm_period = (float)MOTOR_PWM_PERIOD * 0.96f;
     pmsm_foc_init();
     
-    
     while(1)
     {
-        led_toggle(LED1);
-        systick_delay(100);
-        led_toggle(LED2);
-        systick_delay(100);
+        task_scheduler();
     }
 }
 
@@ -115,100 +115,7 @@ void ADC0_1_IRQHandler(void)
     
     /* clear the ADC flag */
     adc_interrupt_flag_clear(ADC0, ADC_INT_FLAG_EOIC);
-    
-    if(adc_calibration == 0)
-    {
-        static uint16_t cnt;
-        
-        cnt++;
-        adc1_ia = adc_inserted_data_read(ADC0, IU_INSERTED_CHANNEL);
-        adc1_ib = adc_inserted_data_read(ADC0, IV_INSERTED_CHANNEL);
-        adc1_ic = adc_inserted_data_read(ADC0, IW_INSERTED_CHANNEL);
-        adc1_idc = adc_inserted_data_read(ADC0, IDC_AVER_INSERTED_CHANNEL);
-        ia_offset += adc1_ia;
-        ib_offset += adc1_ib;
-        ic_offset += adc1_ic;
-        idc_offset += adc1_idc;
-        if(cnt >= (1 << 12))
-        {
-            adc_calibration = 1;
-            ia_offset = ia_offset >> 12;
-            ib_offset = ib_offset >> 12;
-            ic_offset = ic_offset >> 12;
-            idc_offset = idc_offset >> 12;
-
-            motor_pwm_channel_enable(ENABLE);
-            pmsm_mc_param.openloop = 0;
-        }
-    }
-    else if(start_delay_tick < START_DELAY_TICK)
-    {
-        start_delay_tick++;
-        mt6701_read_angle0(&angle_u16);
-        angle_u16 = angle_u16 % (16384/7);
-        angle = (float)angle_u16 * (2*M_PI) / (16384/7);
-        angle_last = angle;
-    }
-    else
-    {
-        /* read ADC inserted group data register */
-        adc1_ia = adc_inserted_data_read(ADC0, IU_INSERTED_CHANNEL);
-        adc1_ib = adc_inserted_data_read(ADC0, IV_INSERTED_CHANNEL);
-        adc1_ic = adc_inserted_data_read(ADC0, IW_INSERTED_CHANNEL);
-        adc1_idc = adc_inserted_data_read(ADC0, IDC_AVER_INSERTED_CHANNEL);
-
-        temp1 = ((float)ia_offset - adc1_ia) * ADC_TO_CURRENT_COEF;
-        temp2 = ((float)ib_offset - adc1_ib) * ADC_TO_CURRENT_COEF;
-        
-        pmsm_foc_param.ia = ((float)adc1_ia - ia_offset) * ADC_TO_CURRENT_COEF;
-        pmsm_foc_param.ib = ((float)adc1_ib - ib_offset) * ADC_TO_CURRENT_COEF;
-        pmsm_foc_param.ic = ((float)adc1_ic - ic_offset) * ADC_TO_CURRENT_COEF;
-        
-        mt6701_read_angle0(&angle_u16);
-        angle_u16 = angle_u16 % (16384/7);
-        angle = (float)angle_u16 * (2*M_PI) / (16384/7);
-        if(angle > angle_last)
-        {
-            delta_angle = angle - angle_last;
-        }
-        else
-        {
-            delta_angle = (2*M_PI) + angle - angle_last;
-            if(delta_angle > (M_PI))
-                delta_angle = delta_angle - (2*M_PI);
-        }
-        mt6701_speed = delta_angle * PWMFREQUENCY_HZ;
-        speed_buf[speed_filter_count] = mt6701_speed;
-        speed_filter_count++;
-        if(speed_filter_count >= 10)
-        {
-            speed_filter_count = 0;
-        }
-        speed_sum = 0;
-        for(i=0;i<10;i++)
-        {
-            speed_sum += speed_buf[i];
-        }
-        mt6701_speed = speed_sum / 10;
-        
-        pmsm_mc_param.hall_speed = mt6701_speed;
-        pmsm_foc_param.angle = angle + (M_PI / 4);
-        pmsm_foc_run();
-        
-        angle_last = angle;
-        
-        temp1 = (float)angle;
-        memcpy(&uart_data[0],&temp1,4);
-        temp2 = (float)mt6701_speed;
-        memcpy(&uart_data[4],&temp2,4);
-        temp3 = (float)pmsm_foc_param.iq;
-        memcpy(&uart_data[8],&temp3,4);
-        uart_data[sizeof(uart_data)-2] = 0x80;
-        uart_data[sizeof(uart_data)-1] = 0x7f;
-        usart_send_data(uart_data,sizeof(uart_data));
-        
-        motor_pwm_set_duty(pmsm_foc_param.pwma,pmsm_foc_param.pwmb,pmsm_foc_param.pwmc);
-    }
+    motor_app_isr();
 }
 
 /*!

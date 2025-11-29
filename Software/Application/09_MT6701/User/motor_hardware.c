@@ -77,19 +77,19 @@ void motor_pwm_channel_enable(ControlStatus newvalue)
     if(newvalue == ENABLE)
     {
         timer_channel_output_state_config(TIMER0,PWM_U_CHANNEL,TIMER_CCX_ENABLE);
-        timer_channel_complementary_output_state_config(TIMER0,PWM_U_CHANNEL,TIMER_CCXN_ENABLE);
         timer_channel_output_state_config(TIMER0,PWM_V_CHANNEL,TIMER_CCX_ENABLE);
-        timer_channel_complementary_output_state_config(TIMER0,PWM_V_CHANNEL,TIMER_CCXN_ENABLE);
         timer_channel_output_state_config(TIMER0,PWM_W_CHANNEL,TIMER_CCX_ENABLE);
+        timer_channel_complementary_output_state_config(TIMER0,PWM_U_CHANNEL,TIMER_CCXN_ENABLE);
+        timer_channel_complementary_output_state_config(TIMER0,PWM_V_CHANNEL,TIMER_CCXN_ENABLE);
         timer_channel_complementary_output_state_config(TIMER0,PWM_W_CHANNEL,TIMER_CCXN_ENABLE);
     }
     else
     {
         timer_channel_output_state_config(TIMER0,PWM_U_CHANNEL,TIMER_CCX_DISABLE);
-        timer_channel_complementary_output_state_config(TIMER0,PWM_U_CHANNEL,TIMER_CCXN_DISABLE);
         timer_channel_output_state_config(TIMER0,PWM_V_CHANNEL,TIMER_CCX_DISABLE);
-        timer_channel_complementary_output_state_config(TIMER0,PWM_V_CHANNEL,TIMER_CCXN_DISABLE);
         timer_channel_output_state_config(TIMER0,PWM_W_CHANNEL,TIMER_CCX_DISABLE);
+        timer_channel_complementary_output_state_config(TIMER0,PWM_U_CHANNEL,TIMER_CCXN_DISABLE);
+        timer_channel_complementary_output_state_config(TIMER0,PWM_V_CHANNEL,TIMER_CCXN_DISABLE);
         timer_channel_complementary_output_state_config(TIMER0,PWM_W_CHANNEL,TIMER_CCXN_DISABLE);
     }
 }
@@ -103,31 +103,6 @@ void adc0_init(void)
 {
     adc_gpio_init();
     adc0_config();
-}
-
-/**
-  * @brief DAC comp config
-  * @param None
-  * @retval None
-  */
-void comp_protect_init(void)
-{
-    /* enable the clock of peripherals */
-    rcu_periph_clock_enable(RCU_GPIOA);
-    rcu_periph_clock_enable(RCU_DAC);
-    
-    /* once enabled the DAC, the corresponding GPIO pin is connected to the DAC converter automatically */
-    gpio_init(GPIOA, GPIO_MODE_AIN, GPIO_OSPEED_50MHZ, GPIO_PIN_5);
-    
-    dac_deinit();
-    /* configure the DAC0 */
-    dac_wave_mode_config(DAC1, DAC_WAVE_MODE_LFSR);
-    dac_lfsr_noise_config(DAC1, DAC_LFSR_BITS10_0);
-    
-    /* enable DAC0 and set data */
-    dac_enable(DAC1);
-    //dac_data_set(DAC1, DAC_ALIGN_12B_R, PHASE_OVER_CURRENT_DAC_VAULE);
-    dac_data_set(DAC1, DAC_ALIGN_12B_R, PHASE_OVER_CURRENT_DAC_VAULE);
 }
 
 /**

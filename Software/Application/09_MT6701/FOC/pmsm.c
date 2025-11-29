@@ -70,6 +70,26 @@ void pmsm_foc_run(void)
 	svpwm(&pmsm_foc_param);
 }
 
+/**
+ * Make sure that -pi <= angle < pi,
+ *
+ * TODO: Maybe use fmodf instead?
+ *
+ * @param angle
+ * The angle to normalize in radians.
+ * WARNING: Don't use too large angles.
+ */
+void utils_norm_angle_rad(float *angle)
+{
+	while (*angle < 0) {
+		*angle += ANGLE_2PI;
+	}
+
+	while (*angle >  ANGLE_2PI) {
+		*angle -= ANGLE_2PI;
+	}
+}
+
 /* LOCAL FUNCTION -----------------------------------------------------------------------------------*/
 /**
   * @brief parameters init
@@ -215,7 +235,7 @@ static void pid_control(void)
         {
             pmsm_mc_param.speed_loop_count = 0;
             // PI control for SPEED
-            pmsm_foc_param.pi_w.meas = pmsm_mc_param.hall_speed;
+            pmsm_foc_param.pi_w.meas = pmsm_mc_param.actual_speed;
             pmsm_foc_param.pi_w.ref  = pmsm_mc_param.vel_ref;
             calc_pi(&pmsm_foc_param.pi_w);
             pmsm_mc_param.iq_ref = pmsm_foc_param.pi_w.out;
