@@ -28,6 +28,9 @@ extern "C"{
 #define OFFSET_ANGLE_CAL_COUNT          20
 #define OFFSET_ANGLE_CAL_DELAY_SEC      (float)3
 #define OFFSET_ANGLE_CAL_DELAY_TICK     (uint32_t)((float)OFFSET_ANGLE_CAL_DELAY_SEC/(1/(float)MOTOR_PWM_FREQ_HZ))
+    
+#define SENSOR_DIR_POS              0
+#define SENSOR_DIR_REV              1
 
 typedef enum{
     INIT = 0,
@@ -38,6 +41,15 @@ typedef enum{
     RUN,
     FAULT,
 }motor_state_t;
+
+typedef enum{
+    WAIT_STABLE = 0,        /* 等待开环运行稳定 */
+    DIR_CAL,                /* 方向标定 */
+    POLES_CAL,              /* 极对数标定 */
+    OFFSET_CAL,             /* 偏移角标定 */
+    CAL_DONE,               /* 标定结束 */
+    CAL_ERROR,
+}sensor_cal_state_t;
 
 typedef struct{
     uint16_t adc_ia;
@@ -62,6 +74,7 @@ typedef struct{
     uint8_t start;
     
     motor_state_t state;
+    sensor_cal_state_t sensor_cal_state;
 }motor_control_t;
 
 /* VARIABLES ----------------------------------------------------------------------------------------*/

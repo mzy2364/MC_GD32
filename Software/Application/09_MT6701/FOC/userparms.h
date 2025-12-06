@@ -36,15 +36,14 @@ extern "C"{
 #define RPM_TO_RADS                                     ((float)2*M_PI/60)
 
 /*************** Motor Parameters *********************************************/
-//2808-MT6701
-#define MOTOR_NOPOLESPAIRS                               2
+#define MOTOR_NOPOLESPAIRS                               1
 
 /*************** PWM and Control Timing Parameters ****************************/
 #define PWMFREQUENCY_HZ                                 (float)MOTOR_PWM_FREQ_HZ
 #define LOOPTIME_SEC                                    (float)(1/PWMFREQUENCY_HZ)
 
 /*************** Startup Parameters *******************************************/
-#define OPEN_LOOP_CURRENT                               1
+#define OPEN_LOOP_CURRENT                               0.5
 
 #define SPEED_LOOP_CYCLE                                10
 
@@ -52,7 +51,7 @@ extern "C"{
 #define LOCK_COUNTER                                    (unsigned int)((float)LOCK_TIME_SEC/(float)LOOPTIME_SEC)
 
 #define OPENLOOPTIMEINSEC 	                            1
-#define OPEN_LOOP_END_SPEED_RPM                         100
+#define OPEN_LOOP_END_SPEED_RPM                         200
 
 #define END_SPEED_RADS_MECH                             (float)(OPEN_LOOP_END_SPEED_RPM*RPM_TO_RADS)
 #define END_SPEED_RADS_ELEC                             (float)(END_SPEED_RADS_MECH*MOTOR_NOPOLESPAIRS)
@@ -67,7 +66,8 @@ extern "C"{
 #define CL_SPEED_HYSTERESIS                              (float)(5*CL_SPEED_RAMP_RATE_DELTA)
     
 #define NOMINAL_SPEED_RPM                                   (float)3000 // Value in RPM
-#define NOMINAL_SPEED_RAD_PER_SEC_ELEC                      (float)(((NOMINAL_SPEED_RPM/60)*2*M_PI)*MOTOR_NOPOLESPAIRS) // Value in RPM
+//#define NOMINAL_SPEED_RAD_PER_SEC_ELEC                      (float)(((NOMINAL_SPEED_RPM/60)*2*M_PI)*MOTOR_NOPOLESPAIRS) // Value in RPM
+#define NOMINAL_SPEED_RAD_PER_SEC_MECH                      (float)(((NOMINAL_SPEED_RPM/60)*2*M_PI)) // Value in RPM
 
     
 /*************** PID Parameters ***********************************************/
@@ -94,6 +94,9 @@ extern "C"{
 #define OPEN_LOOP_MODE
 //#define OPEN_LOOP_VF_VQ     0.3f
 //#define TORQUE_MODE
+
+/* 如果不需要传感器和电机参数标定,请定义该宏定义 */
+//#define OFFSET_ANGLE_CAL_DONE
 
 #ifdef __cplusplus
 }

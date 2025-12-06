@@ -28,20 +28,41 @@ static uint32_t ia_sum = 0,ib_sum = 0,ic_sum = 0;
 can_trasnmit_message_struct transmit_message;
 
 float sensor_mech_angle = 0;
+float sensor_last_mech_angle = 0;
 float sensor_elec_angle = 0;
-float sensor_offset_angle = 0;
 
+#ifndef OFFSET_ANGLE_CAL_DONE
+float sensor_offset_angle = 0;
+uint8_t sensor_dir = SENSOR_DIR_POS;
+uint8_t motor_poles = 0;
+#else
+/* 如果标定完成,这三个参数可以直接填进去 */
+float sensor_offset_angle = 0;
+uint8_t sensor_dir = SENSOR_DIR_POS;
+uint8_t motor_poles = 0;
+#endif
+
+
+uint8_t sensor_cal_dir = SENSOR_DIR_POS;
 uint8_t sensor_offset_cal_done =0;
 float offset_total_angle = 0;
 float offset_angle_buffer[OFFSET_ANGLE_CAL_COUNT] = {0};
 uint16_t offset_angle_cal_index = 0;
 uint16_t offset_angle_cal_delay = 0;
 
+float delta_mech_angle = 0;
+float delta_mech_angle_total = 0;
 static float motor_omega = 0;
+static float motor_mech_omega = 0;
+
+float last_foc_angle = 0;
+
+uint32_t rotor_turns = 0;   /* 转子圈数 */
 
 /* LOCAL FUNCTION -----------------------------------------------------------------------------------*/
 static void motor_can_transmit(void);
-static float calc_speed(float angle);
+static float calc_elec_speed(float angle);
+static float calc_mech_speed(float angle);
 
 /* GLOBAL FUNCTION ----------------------------------------------------------------------------------*/
 
@@ -54,6 +75,8 @@ void motor_app_init(void)
 {
     motor1.state = INIT;
     motor1.start = 1;
+    
+    motor1.sensor_cal_state = WAIT_STABLE;
     
     transmit_message.tx_sfid = 0x7ab;
     transmit_message.tx_efid = 0x00;
@@ -98,17 +121,17 @@ void motor_app_task10ms(void)
     
     if(pmsm_mc_param.run_motor == 1)
     {
-        motor1.speed_rpm = pmsm_mc_param.actual_speed * ((float)60 / ANGLE_2PI / MOTOR_NOPOLESPAIRS);
+        motor1.speed_rpm = pmsm_mc_param.actual_speed * ((float)60 / ANGLE_2PI);
         if(encoder_code == ENCODER_INC)
         {
-            if(pmsm_mc_param.vel_input < NOMINAL_SPEED_RAD_PER_SEC_ELEC)
+            if(pmsm_mc_param.vel_input < NOMINAL_SPEED_RAD_PER_SEC_MECH)
             {
                 pmsm_mc_param.vel_input = pmsm_mc_param.vel_input + 1.0f;
             }
         }
         else if(encoder_code == ENCODER_DEC)
         {      
-            if(pmsm_mc_param.vel_input > END_SPEED_RADS_ELEC)
+            if(pmsm_mc_param.vel_input > END_SPEED_RADS_MECH)
             {
                 pmsm_mc_param.vel_input = pmsm_mc_param.vel_input - 1.0f;
             }
@@ -188,9 +211,31 @@ void motor_app_isr(void)
     uint8_t uart_data[16] = {0};
     
     mt6701_read_angle2(&sensor_mech_angle);
-    sensor_elec_angle = sensor_mech_angle * MOTOR_NOPOLESPAIRS;
-    utils_norm_angle_rad(&sensor_elec_angle);
-    motor_omega = calc_speed(sensor_elec_angle);
+    if(sensor_dir == SENSOR_DIR_REV)
+    {
+        sensor_mech_angle = ANGLE_2PI - sensor_mech_angle;
+    }
+    motor_mech_omega = calc_mech_speed(sensor_mech_angle);
+#ifndef OFFSET_ANGLE_CAL_DONE
+    if(sensor_offset_cal_done)
+    {
+        sensor_elec_angle = sensor_mech_angle * motor_poles;
+        utils_norm_angle_rad(&sensor_elec_angle);
+        motor_omega = calc_elec_speed(sensor_elec_angle);
+    }
+#else
+        sensor_elec_angle = sensor_mech_angle * motor_poles;
+        utils_norm_angle_rad(&sensor_elec_angle);
+        motor_omega = calc_elec_speed(sensor_elec_angle);
+#endif
+    
+    
+    if(sensor_offset_cal_done)
+    {
+        sensor_elec_angle = sensor_mech_angle * motor_poles;
+        utils_norm_angle_rad(&sensor_elec_angle);
+        motor_omega = calc_elec_speed(sensor_elec_angle);
+    }
     
     switch(motor1.state)
     {
@@ -251,36 +296,90 @@ void motor_app_isr(void)
                 pmsm_foc_param.ib = ((float)motor1.adc_ib - motor1.ib_offset) * ADC_TO_CURRENT_COEF;
                 pmsm_foc_param.ic = ((float)motor1.adc_ic - motor1.ic_offset) * ADC_TO_CURRENT_COEF;
                 
-                sensor_offset_angle = pmsm_foc_param.angle - sensor_elec_angle;
-                utils_norm_angle_rad(&sensor_offset_angle);
-                offset_angle_cal_delay++;
-                if(offset_angle_cal_delay >= OFFSET_ANGLE_CAL_DELAY_TICK)
+                switch(motor1.sensor_cal_state)
                 {
-                    offset_total_angle += sensor_offset_angle;
-                    offset_angle_cal_index++;
-                    if(offset_angle_cal_index >= OFFSET_ANGLE_CAL_COUNT)
-                    {
-                        sensor_offset_angle = offset_total_angle / (float)OFFSET_ANGLE_CAL_COUNT;
-                        sensor_offset_cal_done = 1;
-                        if(motor1.start)
+                    case WAIT_STABLE:
+                        offset_angle_cal_delay++;
+                        if(offset_angle_cal_delay >= OFFSET_ANGLE_CAL_DELAY_TICK)
                         {
-                            motor1.state = RUN;
+                            motor1.sensor_cal_state = DIR_CAL;
+                            offset_angle_cal_index = 0;
+                        }
+                        break;
+                    case DIR_CAL:
+                        delta_mech_angle_total += delta_mech_angle;
+                        offset_angle_cal_index++;
+                        if(offset_angle_cal_index >= OFFSET_ANGLE_CAL_COUNT)
+                        {
+                            offset_angle_cal_index = 0;
+                            if(delta_mech_angle_total > 0)
+                            {
+                                sensor_cal_dir = SENSOR_DIR_POS;
+                            }
+                            else
+                            {
+                                sensor_cal_dir = SENSOR_DIR_REV;
+                            }
+                            sensor_dir = sensor_cal_dir;
+                            motor1.sensor_cal_state = POLES_CAL;
+                            last_foc_angle = pmsm_foc_param.angle;
+                            rotor_turns = 0;
+                        }
+                        break;
+                    case POLES_CAL:
+                        if(rotor_turns >= 3)
+                        {
+                            if(pmsm_foc_param.angle < last_foc_angle)
+                            {
+                                /* 电角度换向了 */
+                                motor_poles++;
+                            }
+                            last_foc_angle = pmsm_foc_param.angle;
+                            if(rotor_turns >= 4)
+                            {
+                                motor1.sensor_cal_state = OFFSET_CAL;
+                            }
                         }
                         else
                         {
-                            motor1.state = STOP;
+                            last_foc_angle = pmsm_foc_param.angle;
                         }
-                    }
+                        
+                        break;
+                    case OFFSET_CAL:
+                        sensor_elec_angle = sensor_mech_angle * motor_poles;
+                        utils_norm_angle_rad(&sensor_elec_angle);
+                        sensor_offset_angle = pmsm_foc_param.angle - sensor_elec_angle;
+                        utils_norm_angle_rad(&sensor_offset_angle);
+
+                        offset_total_angle += sensor_offset_angle;
+                        offset_angle_cal_index++;
+                        if(offset_angle_cal_index >= OFFSET_ANGLE_CAL_COUNT)
+                        {
+                            sensor_offset_angle = offset_total_angle / (float)OFFSET_ANGLE_CAL_COUNT;
+                            sensor_offset_cal_done = 1;
+                            motor1.sensor_cal_state = CAL_DONE;
+                        }
+                        break;
+                    case CAL_DONE:
+                        motor1.state = STOP;
+                        break;
+                    case CAL_ERROR:
+                        break;
+                    default:
+                        break;
                 }
+                
+
                 
                 pmsm_mc_param.openloop = 1;
                 pmsm_foc_run();
                 
-                temp1 = (float)sensor_elec_angle;
+                temp1 = (float)sensor_mech_angle;
                 memcpy(&uart_data[0],&temp1,4);
                 temp2 = (float)pmsm_foc_param.angle;
                 memcpy(&uart_data[4],&temp2,4);
-                temp3 = (float)motor_omega;
+                temp3 = (float)motor_poles;
                 memcpy(&uart_data[8],&temp3,4);
                 uart_data[sizeof(uart_data)-2] = 0x80;
                 uart_data[sizeof(uart_data)-1] = 0x7f;
@@ -310,15 +409,15 @@ void motor_app_isr(void)
                 pmsm_mc_param.openloop = 0;
                 pmsm_foc_param.angle = sensor_elec_angle + sensor_offset_angle + 1.57f;
                 utils_norm_angle_rad(&pmsm_foc_param.angle);
-                pmsm_mc_param.actual_speed = motor_omega;
+                pmsm_mc_param.actual_speed = motor_mech_omega;
                 
                 pmsm_foc_run();
                 
-                temp1 = (float)sensor_elec_angle;
+                temp1 = (float)sensor_mech_angle;
                 memcpy(&uart_data[0],&temp1,4);
                 temp2 = (float)pmsm_foc_param.angle;
                 memcpy(&uart_data[4],&temp2,4);
-                temp3 = (float)motor_omega;
+                temp3 = (float)motor_mech_omega;
                 memcpy(&uart_data[8],&temp3,4);
                 uart_data[sizeof(uart_data)-2] = 0x80;
                 uart_data[sizeof(uart_data)-1] = 0x7f;
@@ -366,7 +465,29 @@ static void motor_can_transmit(void)
   * @param angle - motor angle
   * @retval None
   */
-static float calc_speed(float angle)
+static float calc_mech_speed(float angle)
+{
+    delta_mech_angle = angle - sensor_last_mech_angle;
+    sensor_last_mech_angle = angle;
+    if(delta_mech_angle < -M_PI)
+    {
+        delta_mech_angle += ANGLE_2PI;
+        rotor_turns++;
+    }
+    else if(delta_mech_angle > M_PI)
+    {
+        delta_mech_angle -= ANGLE_2PI;
+        rotor_turns++;
+    }
+    return delta_mech_angle * MOTOR_PWM_FREQ_HZ;
+}
+
+/**
+  * @brief calculate motor speed
+  * @param angle - motor angle
+  * @retval None
+  */
+static float calc_elec_speed(float angle)
 {
     static float theta_pll = 0;
     static float pll_sum = 0;

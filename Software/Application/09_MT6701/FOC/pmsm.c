@@ -45,7 +45,7 @@ void pmsm_foc_init(void)
 	pmsm_mc_param.startup_lock_count = 0;
 	pmsm_mc_param.startup_ramp = 0;
     
-    pmsm_mc_param.vel_input = NOMINAL_SPEED_RAD_PER_SEC_ELEC;
+    pmsm_mc_param.vel_input = NOMINAL_SPEED_RAD_PER_SEC_MECH;
 }
 
 /**
