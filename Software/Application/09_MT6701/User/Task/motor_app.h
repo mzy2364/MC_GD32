@@ -25,7 +25,7 @@ extern "C"{
 
 #define ADC_CAL_COUNT               1024
 
-#define OFFSET_ANGLE_CAL_COUNT          20
+#define OFFSET_ANGLE_CAL_COUNT          16000
 #define OFFSET_ANGLE_CAL_DELAY_SEC      (float)3
 #define OFFSET_ANGLE_CAL_DELAY_TICK     (uint32_t)((float)OFFSET_ANGLE_CAL_DELAY_SEC/(1/(float)MOTOR_PWM_FREQ_HZ))
     

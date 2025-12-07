@@ -46,9 +46,8 @@ uint8_t motor_poles = 0;
 uint8_t sensor_cal_dir = SENSOR_DIR_POS;
 uint8_t sensor_offset_cal_done =0;
 float offset_total_angle = 0;
-float offset_angle_buffer[OFFSET_ANGLE_CAL_COUNT] = {0};
-uint16_t offset_angle_cal_index = 0;
-uint16_t offset_angle_cal_delay = 0;
+uint32_t offset_angle_cal_index = 0;
+uint32_t offset_angle_cal_delay = 0;
 
 float delta_mech_angle = 0;
 float delta_mech_angle_total = 0;
